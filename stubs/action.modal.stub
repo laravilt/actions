@@ -1,0 +1,33 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Actions\Action;
+
+class {{ class }} extends Action
+{
+    /**
+     * Configure the action.
+     */
+    protected function setUp(): void
+    {
+        $this->label('{{ actionLabel }}');
+
+        // Configure modal confirmation
+        $this->requiresConfirmation()
+            ->modalHeading('Confirm {{ actionLabel }}')
+            ->modalDescription('Are you sure you want to perform this action?')
+            ->modalSubmitActionLabel('Confirm');
+
+        // $this->icon('heroicon-o-check');
+        // $this->color('primary');
+    }
+
+    /**
+     * Execute the action.
+     */
+    public function handle(): void
+    {
+        // Implement your action logic here
+    }
+}

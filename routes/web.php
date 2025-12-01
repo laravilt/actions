@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Laravilt\Actions\Http\Controllers\ActionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,9 +15,5 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['web'])->group(function () {
-    // Add your web routes here
-    // Example:
-    // Route::get('/actions', function () {
-    //     return view('actions::index');
-    // });
+    Route::post('/actions/execute', [ActionController::class, 'execute'])->name('actions.execute');
 });

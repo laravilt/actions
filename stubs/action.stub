@@ -1,0 +1,28 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Actions\Action;
+
+class {{ class }} extends Action
+{
+    /**
+     * Configure the action.
+     */
+    protected function setUp(): void
+    {
+        $this->label('{{ actionLabel }}');
+
+        // Configure your action here
+        // $this->icon('heroicon-o-check');
+        // $this->color('primary');
+    }
+
+    /**
+     * Execute the action.
+     */
+    public function handle(): void
+    {
+        // Implement your action logic here
+    }
+}

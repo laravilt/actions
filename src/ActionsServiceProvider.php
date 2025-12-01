@@ -49,6 +49,7 @@ class ActionsServiceProvider extends ServiceProvider
             // Register commands
             $this->commands([
                 Commands\InstallActionsCommand::class,
+                Commands\MakeActionCommand::class,
             ]);
         }
     }

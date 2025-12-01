@@ -1,0 +1,53 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Actions\Action;
+use Laravilt\Forms\Components\TextInput;
+
+class {{ class }} extends Action
+{
+    /**
+     * Configure the action.
+     */
+    protected function setUp(): void
+    {
+        $this->label('{{ actionLabel }}');
+
+        // Configure modal with form
+        $this->requiresConfirmation()
+            ->modalHeading('{{ actionLabel }}')
+            ->modalDescription('Please fill in the required information.')
+            ->modalSubmitActionLabel('Submit')
+            ->form($this->getFormSchema());
+
+        // $this->icon('heroicon-o-check');
+        // $this->color('primary');
+    }
+
+    /**
+     * Get the form schema for the modal.
+     */
+    protected function getFormSchema(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label('Name')
+                ->required()
+                ->maxLength(255),
+
+            // Add more form fields here
+        ];
+    }
+
+    /**
+     * Execute the action with form data.
+     */
+    public function handle(array $data = []): void
+    {
+        // Access form data via $data array
+        // Example: $name = $data['name'];
+
+        // Implement your action logic here
+    }
+}

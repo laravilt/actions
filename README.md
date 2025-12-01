@@ -21,20 +21,6 @@ composer require laravilt/actions
 
 The package will automatically register its service provider which handles all Laravel-specific functionality (views, migrations, config, etc.).
 
-## Usage
-
-Register the plugin in your Filament panel provider:
-
-```php
-use Laravilt\Actions\ActionsPlugin;
-
-public function panel(Panel $panel): Panel
-{
-    return $panel
-        // ...
-        ->plugin(new ActionsPlugin());
-}
-```
 ## Configuration
 
 Publish the config file:

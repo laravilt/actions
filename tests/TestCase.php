@@ -25,5 +25,6 @@ class TestCase extends Orchestra
     {
         // Setup environment for testing
         config()->set('database.default', 'testing');
+        config()->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
     }
 }
