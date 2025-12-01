@@ -91,12 +91,34 @@ trait HasModal
 
     public function getModalHeading(): ?string
     {
-        return $this->modalHeading;
+        // If heading is explicitly set, use it
+        if ($this->modalHeading !== null) {
+            return $this->modalHeading;
+        }
+
+        // If requires confirmation but no heading, generate default based on action label
+        if ($this->requiresConfirmation) {
+            $label = method_exists($this, 'getLabel') ? $this->getLabel() : null;
+            return $label ? "Confirm {$label}" : 'Confirm Action';
+        }
+
+        return null;
     }
 
     public function getModalDescription(): ?string
     {
-        return $this->modalDescription;
+        // If description is explicitly set, use it
+        if ($this->modalDescription !== null) {
+            return $this->modalDescription;
+        }
+
+        // If requires confirmation but no description, generate default based on action label
+        if ($this->requiresConfirmation) {
+            $label = method_exists($this, 'getLabel') ? $this->getLabel() : 'this action';
+            return "Are you sure you want to {$label}?";
+        }
+
+        return null;
     }
 
     public function getModalSubmitActionLabel(): ?string
@@ -111,12 +133,34 @@ trait HasModal
 
     public function getModalIcon(): ?string
     {
-        return $this->modalIcon;
+        // If icon is explicitly set, use it
+        if ($this->modalIcon !== null) {
+            return $this->modalIcon;
+        }
+
+        // If requires confirmation but no icon, use action's icon or default
+        if ($this->requiresConfirmation) {
+            $actionIcon = method_exists($this, 'getIcon') ? $this->getIcon() : null;
+            return $actionIcon ?? 'alert-circle';
+        }
+
+        return null;
     }
 
     public function getModalIconColor(): ?string
     {
-        return $this->modalIconColor;
+        // If color is explicitly set, use it
+        if ($this->modalIconColor !== null) {
+            return $this->modalIconColor;
+        }
+
+        // If requires confirmation but no color, use action's color or default
+        if ($this->requiresConfirmation) {
+            $actionColor = method_exists($this, 'getColor') ? $this->getColor() : null;
+            return $actionColor ?? 'primary';
+        }
+
+        return null;
     }
 
     protected bool $requiresPassword = false;

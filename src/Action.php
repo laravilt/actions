@@ -348,4 +348,9 @@ class Action implements Arrayable
             return $value !== null && $value !== '';
         });
     }
+
+    public function toInertiaProps(): array
+    {
+        return $this->toArray();
+    }
 }

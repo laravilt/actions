@@ -101,21 +101,21 @@ class ActionController extends Controller
         // Execute the action
         $data = $request->input('data', []);
 
-        // Debug: Log the received data
-        \Log::info('Action data received:', ['data' => $data]);
+        // Ensure data is an array
+        if (!is_array($data)) {
+            $data = [];
+        }
 
         // Use reflection to detect closure parameters and inject dependencies
         $reflection = new \ReflectionFunction($actionClosure);
         $parameters = $reflection->getParameters();
         $args = [];
 
-        \Log::info('Action parameters:', [
-            'count' => count($parameters),
-            'params' => array_map(fn ($p) => [
-                'name' => $p->getName(),
-                'type' => $p->getType()?->getName(),
-            ], $parameters),
-        ]);
+        // Extract record from data if present (from table actions)
+        $record = isset($data['record']) && is_array($data['record']) ? $data['record'] : null;
+
+        // Extract ids for bulk actions
+        $ids = isset($data['ids']) && is_array($data['ids']) ? $data['ids'] : null;
 
         foreach ($parameters as $parameter) {
             $type = $parameter->getType();
@@ -124,25 +124,27 @@ class ActionController extends Controller
 
             // Inject Get utility
             if ($typeName === \Laravilt\Support\Utilities\Get::class) {
-                \Log::info('Injecting Get utility with data:', $data);
                 $args[] = new \Laravilt\Support\Utilities\Get($data);
             }
             // Inject Set utility
             elseif ($typeName === \Laravilt\Support\Utilities\Set::class) {
-                \Log::info('Injecting Set utility with data reference');
                 $args[] = new \Laravilt\Support\Utilities\Set($data);
             }
             // Parameter explicitly named 'data' always gets the data array
             elseif ($paramName === 'data') {
                 $args[] = $data;
             }
-            // Parameter explicitly named 'record' always gets null (for standalone actions)
+            // Parameter explicitly named 'record' gets the extracted record
             elseif ($paramName === 'record') {
-                $args[] = null;
+                $args[] = $record;
             }
-            // First untyped parameter (no explicit name match) gets null as record
+            // Parameter explicitly named 'records' or 'ids' gets the ids array (for bulk actions)
+            elseif (($paramName === 'records' || $paramName === 'ids') && $ids !== null) {
+                $args[] = $ids;
+            }
+            // First untyped parameter - if we have ids (bulk action), pass ids; otherwise pass record
             elseif ($typeName === null && count($args) === 0) {
-                $args[] = null;
+                $args[] = $ids !== null ? $ids : $record;
             }
             // Second untyped parameter gets the data array
             elseif ($typeName === null) {
@@ -155,9 +157,7 @@ class ActionController extends Controller
         }
 
         // Call the closure with resolved arguments
-        \Log::info('Calling closure with args:', ['arg_count' => count($args)]);
         $actionClosure(...$args);
-        \Log::info('After action execution, data is:', $data);
 
         // Flash updated data to session for the next request
         session()->flash('action_updated_data', $data);
