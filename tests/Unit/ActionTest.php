@@ -34,7 +34,6 @@ describe('Action Basic Features', function () {
         expect($action->getIcon())->toBe('star');
     });
 
-
     it('can set and get tooltip', function () {
         $action = Action::make('test')->tooltip('Click me');
 
@@ -179,6 +178,7 @@ describe('Action Execution', function () {
         $action = Action::make('test')
             ->action(function () use (&$executed) {
                 $executed = true;
+
                 return 'success';
             });
 
@@ -195,6 +195,7 @@ describe('Action Execution', function () {
         $action = Action::make('test')
             ->action(function ($rec) use (&$passedRecord) {
                 $passedRecord = $rec;
+
                 return $rec->name;
             });
 
@@ -210,6 +211,7 @@ describe('Action Execution', function () {
         $action = Action::make('test')
             ->action(function ($record, $data) use (&$passedData) {
                 $passedData = $data;
+
                 return $data;
             });
 

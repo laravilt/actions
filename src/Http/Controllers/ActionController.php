@@ -70,7 +70,7 @@ class ActionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Action execution failed: ' . $e->getMessage(),
+                'message' => 'Action execution failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -85,7 +85,7 @@ class ActionController extends Controller
         // Get the serializable closure from session
         $serializableClosure = session()->get("action.{$actionId}");
 
-        if (!$serializableClosure) {
+        if (! $serializableClosure) {
             return back()->withErrors(['action' => 'Action not found or expired']);
         }
 
@@ -94,7 +94,7 @@ class ActionController extends Controller
             ? $serializableClosure->getClosure()
             : $serializableClosure;
 
-        if (!is_callable($actionClosure)) {
+        if (! is_callable($actionClosure)) {
             return back()->withErrors(['action' => 'Invalid action']);
         }
 
@@ -111,15 +111,15 @@ class ActionController extends Controller
 
         \Log::info('Action parameters:', [
             'count' => count($parameters),
-            'params' => array_map(fn($p) => [
+            'params' => array_map(fn ($p) => [
                 'name' => $p->getName(),
                 'type' => $p->getType()?->getName(),
-            ], $parameters)
+            ], $parameters),
         ]);
 
         foreach ($parameters as $parameter) {
             $type = $parameter->getType();
-            $typeName = $type && !$type->isBuiltin() ? $type->getName() : null;
+            $typeName = $type && ! $type->isBuiltin() ? $type->getName() : null;
             $paramName = $parameter->getName();
 
             // Inject Get utility

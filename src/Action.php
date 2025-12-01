@@ -163,7 +163,7 @@ class Action implements Arrayable
      */
     protected function getDefaultLabel(): ?string
     {
-        if (!$this->name) {
+        if (! $this->name) {
             return null;
         }
 
@@ -258,7 +258,7 @@ class Action implements Arrayable
     public function getActionToken(): string
     {
         // Check if this is a standalone action (has closure but no component)
-        if ($this->action && !$this->componentClass) {
+        if ($this->action && ! $this->componentClass) {
             return $this->getStandaloneActionToken();
         }
 
@@ -281,7 +281,7 @@ class Action implements Arrayable
         }
 
         // Generate action ID based on action name for consistency
-        $actionId = 'action_' . $this->getName();
+        $actionId = 'action_'.$this->getName();
 
         // Wrap closure in SerializableClosure to allow session storage
         $serializableClosure = new \Laravel\SerializableClosure\SerializableClosure($this->action);

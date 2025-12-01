@@ -13,7 +13,7 @@ class ActionsServiceProvider extends ServiceProvider
     {
         // Merge config
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/laravilt-actions.php',
+            __DIR__.'/../config/laravilt-actions.php',
             'laravilt-actions'
         );
 
@@ -27,24 +27,21 @@ class ActionsServiceProvider extends ServiceProvider
     {
 
         // Load translations
-        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'actions');
-
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'actions');
 
         // Load web routes
-        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         if ($this->app->runningInConsole()) {
             // Publish config
             $this->publishes([
-                __DIR__ . '/../config/laravilt-actions.php' => config_path('laravilt-actions.php'),
+                __DIR__.'/../config/laravilt-actions.php' => config_path('laravilt-actions.php'),
             ], 'laravilt-actions-config');
 
             // Publish assets
             $this->publishes([
-                __DIR__ . '/../dist' => public_path('vendor/laravilt/actions'),
+                __DIR__.'/../dist' => public_path('vendor/laravilt/actions'),
             ], 'laravilt-actions-assets');
-
 
             // Register commands
             $this->commands([
