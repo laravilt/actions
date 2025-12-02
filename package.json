@@ -80,7 +80,7 @@
         "vue-tsc": "^2.2.4"
     },
     "dependencies": {
-        "@laravilt/actions": "file:laravilt-actions-1.0.0.tgz",
+        "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^0.468.0",
         "reka-ui": "^2.6.1",
