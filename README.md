@@ -1,4 +1,4 @@
-![Actions](./arts/screenshot.jpg)
+![Actions](https://raw.githubusercontent.com/laravilt/actions/master/arts/screenshot.jpg)
 
 # Laravilt Actions
 
