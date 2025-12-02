@@ -50,9 +50,13 @@
         "lint": "eslint . --fix"
     },
     "peerDependencies": {
-        "vue": "^3.3.0"
+        "vue": "^3.3.0",
+        "@inertiajs/vue3": "^2.0.0"
     },
     "peerDependenciesMeta": {
+        "@inertiajs/vue3": {
+            "optional": true
+        },
         "@laravilt/forms": {
             "optional": true
         }
