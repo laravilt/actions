@@ -1,13 +1,18 @@
 {
     "name": "laravilt/actions",
-    "description": "Pre-built, fully customizable components for Inertia.js, seamlessly integrated with a PHP backend and Laravel framework. This package is optimized for high-end performance and compatibility with FilamentPHP v4, providing a powerful solution for building modern, reactive web applications.",
+    "description": "Complete action system with modal support, authorization, and Inertia.js integration. Build interactive UI components with buttons, links, and icon buttons. Includes confirmation modals, custom forms, and secure token-based execution.",
     "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": [
         "laravel",
         "laravilt",
-        "plugin"
+        "actions",
+        "buttons",
+        "modals",
+        "authorization",
+        "inertia",
+        "vue"
     ],
     "authors": [
         {

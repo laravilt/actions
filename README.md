@@ -1,6 +1,6 @@
 ![Actions](./arts/screenshot.jpg)
 
-# Actions Plugin for Laravilt
+# Laravilt Actions
 
 [![Latest Stable Version](https://poser.pugx.org/laravilt/actions/version.svg)](https://packagist.org/packages/laravilt/actions)
 [![License](https://poser.pugx.org/laravilt/actions/license.svg)](https://packagist.org/packages/laravilt/actions)
@@ -9,24 +9,60 @@
 [![PHP Code Styling](https://github.com/laravilt/actions/actions/workflows/fix-php-code-styling.yml/badge.svg)](https://github.com/laravilt/actions/actions/workflows/fix-php-code-styling.yml)
 [![Tests](https://github.com/laravilt/actions/actions/workflows/tests.yml/badge.svg)](https://github.com/laravilt/actions/actions/workflows/tests.yml)
 
-Pre-built, fully customizable components for Inertia.js, seamlessly integrated with a PHP backend and Laravel framework. This package is optimized for high-end performance and compatibility with FilamentPHP v4, providing a powerful solution for building modern, reactive web applications.
+Complete action system with modal support, authorization, and Inertia.js integration for Laravilt. Build interactive UI components with buttons, links, and icon buttons. Includes confirmation modals, custom forms, password protection, and secure token-based execution.
+
+## Features
+
+- 🎨 **Multiple Variants** - Button, link, and icon button styles
+- 🔒 **Authorization** - Closure-based authorization with record-level checks
+- 📊 **Modal Support** - Confirmation modals, custom forms, slide-overs
+- 🎯 **Flexible Configuration** - Colors, icons, sizes, tooltips
+- 🔗 **URL Handling** - External URLs, internal actions, new tab support
+- ⚡ **Inertia Integration** - Seamless Vue 3 integration
 
 ## Installation
-
-You can install the plugin via composer:
 
 ```bash
 composer require laravilt/actions
 ```
 
-The package will automatically register its service provider which handles all Laravel-specific functionality (views, migrations, config, etc.).
+The package will automatically register its service provider.
+
+## Quick Start
+
+```php
+use Laravilt\Actions\Action;
+
+$action = Action::make('delete')
+    ->label('Delete')
+    ->icon('trash-2')
+    ->color('danger')
+    ->requiresConfirmation()
+    ->modalHeading('Delete User')
+    ->modalDescription('Are you sure?')
+    ->action(function ($record) {
+        $record->delete();
+    });
+```
+
+## Generator Command
+
+```bash
+# Generate an action class
+php artisan make:action ExportUserAction
+```
+
+## Documentation
+
+- **[Complete Documentation](docs/index.md)** - Full feature guide, API reference, and examples
+- **[MCP Server Guide](docs/mcp-server.md)** - AI agent integration
 
 ## Configuration
 
 Publish the config file:
 
 ```bash
-php artisan vendor:publish --tag="actions-config"
+php artisan vendor:publish --tag="laravilt-actions-config"
 ```
 
 ## Assets
@@ -34,7 +70,7 @@ php artisan vendor:publish --tag="actions-config"
 Publish the plugin assets:
 
 ```bash
-php artisan vendor:publish --tag="actions-assets"
+php artisan vendor:publish --tag="laravilt-actions-assets"
 ```
 
 ## Testing
