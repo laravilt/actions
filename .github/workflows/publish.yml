@@ -36,6 +36,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           scope: '@laravilt'
 
+      - name: Configure npm authentication
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+
       - name: Install dependencies
         run: npm install
 
