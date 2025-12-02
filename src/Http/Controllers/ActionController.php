@@ -102,7 +102,7 @@ class ActionController extends Controller
         $data = $request->input('data', []);
 
         // Ensure data is an array
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             $data = [];
         }
 

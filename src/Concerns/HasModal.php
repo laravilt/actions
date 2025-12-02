@@ -99,6 +99,7 @@ trait HasModal
         // If requires confirmation but no heading, generate default based on action label
         if ($this->requiresConfirmation) {
             $label = method_exists($this, 'getLabel') ? $this->getLabel() : null;
+
             return $label ? "Confirm {$label}" : 'Confirm Action';
         }
 
@@ -115,6 +116,7 @@ trait HasModal
         // If requires confirmation but no description, generate default based on action label
         if ($this->requiresConfirmation) {
             $label = method_exists($this, 'getLabel') ? $this->getLabel() : 'this action';
+
             return "Are you sure you want to {$label}?";
         }
 
@@ -141,6 +143,7 @@ trait HasModal
         // If requires confirmation but no icon, use action's icon or default
         if ($this->requiresConfirmation) {
             $actionIcon = method_exists($this, 'getIcon') ? $this->getIcon() : null;
+
             return $actionIcon ?? 'alert-circle';
         }
 
@@ -157,6 +160,7 @@ trait HasModal
         // If requires confirmation but no color, use action's color or default
         if ($this->requiresConfirmation) {
             $actionColor = method_exists($this, 'getColor') ? $this->getColor() : null;
+
             return $actionColor ?? 'primary';
         }
 
