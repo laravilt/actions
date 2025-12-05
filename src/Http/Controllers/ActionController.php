@@ -60,14 +60,34 @@ class ActionController extends Controller
 
             // Execute the action
             $data = $request->input('data', []);
+
+            // Merge the action data into the request so that request()->validate() works
+            $request->merge($data);
+
             $result = $action->execute($record, $data);
+
+            // If the result is a redirect response, return it directly for Inertia to handle
+            if ($result instanceof \Illuminate\Http\RedirectResponse) {
+                \Log::info('ActionController: Returning redirect to: ' . $result->getTargetUrl());
+                return $result;
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Action executed successfully',
                 'result' => $result,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Let validation exceptions bubble up for proper Inertia handling
+            throw $e;
         } catch (\Exception $e) {
+            // For Inertia requests, redirect back with error
+            if ($request->header('X-Inertia')) {
+                return back()->withErrors([
+                    'action' => 'Action execution failed: '.$e->getMessage(),
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Action execution failed: '.$e->getMessage(),
@@ -99,7 +119,8 @@ class ActionController extends Controller
         }
 
         // Execute the action
-        $data = $request->input('data', []);
+        // Check if data is wrapped in 'data' key (old format) or sent directly (new format)
+        $data = $request->has('data') ? $request->input('data', []) : $request->except(['_action_token', 'token', 'action']);
 
         // Ensure data is an array
         if (! is_array($data)) {
@@ -156,11 +177,26 @@ class ActionController extends Controller
             }
         }
 
-        // Call the closure with resolved arguments
-        $actionClosure(...$args);
+        // Merge the action data into the request so that request()->validate() works
+        $request->merge($data);
 
-        // Flash updated data to session for the next request
-        session()->flash('action_updated_data', $data);
+        // Call the closure with resolved arguments
+        // Any exceptions (including ValidationException) will bubble up to the main execute method
+        $result = $actionClosure(...$args);
+
+        // If the result is a redirect response, return it directly
+        if ($result instanceof \Illuminate\Http\RedirectResponse) {
+            return $result;
+        }
+
+        // Determine what to flash to session
+        // If result is an array, merge it with the original data (so both custom result and form data are available)
+        // Otherwise just use the original data
+        if (is_array($result) && count($result) > 0) {
+            session()->flash('action_updated_data', array_merge($data, $result));
+        } else {
+            session()->flash('action_updated_data', $data);
+        }
 
         // Return back with 303 status to preserve scroll position
         return redirect()->back(303);

@@ -4,7 +4,7 @@
             <TooltipTrigger as-child>
                 <component
                     :is="componentType"
-                    type="button"
+                    :type="type"
                     :variant="buttonVariant"
                     :size="variant === 'icon' ? 'icon' : size"
                     :disabled="disabled || isLoading"
@@ -31,7 +31,7 @@
     <component
         v-else
         :is="componentType"
-        type="button"
+        :type="type"
         :variant="buttonVariant"
         :size="variant === 'icon' ? 'icon' : size"
         :disabled="disabled || isLoading"
@@ -52,26 +52,28 @@
     <!-- Action Confirmation Modal -->
     <Dialog v-if="!slideOver" v-model:open="showModal">
         <DialogContent class="sm:max-w-md">
-            <DialogHeader class="text-center sm:text-center">
+            <DialogHeader :class="hasFormSchema ? '' : 'text-center sm:text-center'">
                 <div v-if="modalIcon" class="mx-auto mb-4 flex size-12 items-center justify-center rounded-full" :class="modalIconClass">
                     <component
                         :is="getIconComponent(modalIcon)"
                         class="size-6"
                     />
                 </div>
-                <DialogTitle v-if="modalHeading" class="text-center">{{ modalHeading }}</DialogTitle>
-                <DialogDescription v-if="modalDescription" class="text-center">{{ modalDescription }}</DialogDescription>
+                <DialogTitle v-if="modalHeading" :class="hasFormSchema ? '' : 'text-center'">{{ modalHeading }}</DialogTitle>
+                <DialogDescription v-if="modalDescription" :class="hasFormSchema ? '' : 'text-center'">{{ modalDescription }}</DialogDescription>
             </DialogHeader>
 
             <!-- Modal Form Schema -->
             <div v-if="modalFormSchema && modalFormSchema.length" class="py-4">
-                <FormRenderer :schema="modalFormSchema" v-model="formData" />
+                <ErrorProvider :errors="page.props.errors as Record<string, string | string[]>">
+                    <FormRenderer ref="modalFormRef" :schema="modalFormSchema" v-model="formData" />
+                </ErrorProvider>
             </div>
 
             <!-- Modal Content -->
             <div v-if="modalContent" class="py-4 text-center" v-html="modalContent"></div>
 
-            <DialogFooter class="sm:justify-center gap-2">
+            <DialogFooter :class="hasFormSchema ? 'sm:justify-end' : 'sm:justify-center'" class="gap-2">
                 <Button
                     variant="outline"
                     @click="showModal = false"
@@ -94,26 +96,28 @@
     <!-- Action Confirmation Slideover -->
     <Sheet v-else v-model:open="showModal">
         <SheetContent>
-            <SheetHeader class="text-center">
+            <SheetHeader :class="hasFormSchema ? '' : 'text-center'">
                 <div v-if="modalIcon" class="mx-auto mb-4 flex size-12 items-center justify-center rounded-full" :class="modalIconClass">
                     <component
                         :is="getIconComponent(modalIcon)"
                         class="size-6"
                     />
                 </div>
-                <SheetTitle v-if="modalHeading" class="text-center">{{ modalHeading }}</SheetTitle>
-                <SheetDescription v-if="modalDescription" class="text-center">{{ modalDescription }}</SheetDescription>
+                <SheetTitle v-if="modalHeading" :class="hasFormSchema ? '' : 'text-center'">{{ modalHeading }}</SheetTitle>
+                <SheetDescription v-if="modalDescription" :class="hasFormSchema ? '' : 'text-center'">{{ modalDescription }}</SheetDescription>
             </SheetHeader>
 
             <!-- Form Schema -->
             <div v-if="modalFormSchema && modalFormSchema.length" class="px-4 py-4">
-                <FormRenderer :schema="modalFormSchema" v-model="formData" />
+                <ErrorProvider :errors="page.props.errors as Record<string, string | string[]>">
+                    <FormRenderer ref="slideOverFormRef" :schema="modalFormSchema" v-model="formData" />
+                </ErrorProvider>
             </div>
 
             <!-- Content -->
             <div v-if="modalContent" class="px-4 py-4 text-center" v-html="modalContent"></div>
 
-            <SheetFooter class="justify-center gap-2">
+            <SheetFooter :class="hasFormSchema ? 'sm:justify-end' : 'justify-center'" class="gap-2">
                 <Button
                     variant="outline"
                     @click="showModal = false"
@@ -136,7 +140,7 @@
 
 <script setup lang="ts">
 import { computed, ref, h, inject } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -144,10 +148,18 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Spinner from '@/components/ui/spinner/Spinner.vue';
 import FormRenderer from '@laravilt/forms/components/FormRenderer.vue';
+import ErrorProvider from '@laravilt/forms/components/ErrorProvider.vue';
 import * as LucideIcons from 'lucide-vue-next';
+import { useNotification } from '@laravilt/notifications/composables/useNotification';
+
+// Get Inertia page for accessing validation errors
+const page = usePage();
 
 // Inject validateForm from parent FormRenderer (if available)
 const validateForm = inject<(() => boolean) | undefined>('validateForm', undefined);
+
+// Initialize notification
+const { notify } = useNotification();
 
 interface ActionProps {
     name?: string;
@@ -181,6 +193,10 @@ interface ActionProps {
     class?: string;
     isBulkAction?: boolean;
     deselectRecordsAfterCompletion?: boolean;
+    type?: 'button' | 'submit' | 'reset';
+    preserveState?: boolean;
+    preserveScroll?: boolean;
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 }
 
 const props = withDefaults(defineProps<ActionProps>(), {
@@ -190,11 +206,22 @@ const props = withDefaults(defineProps<ActionProps>(), {
     isOutlined: false,
     disabled: false,
     hasAction: false,
+    type: 'button',
+    preserveState: true,
+    preserveScroll: true,
+    method: 'POST',
 });
 
 const isLoading = ref(false);
 const showModal = ref(false);
 const formData = ref({});
+const modalFormRef = ref<any>(null);
+const slideOverFormRef = ref<any>(null);
+
+// Check if action has a form schema
+const hasFormSchema = computed(() => {
+    return props.modalFormSchema && props.modalFormSchema.length > 0;
+});
 
 // Determine component type (Button or Link)
 const componentType = computed(() => {
@@ -379,8 +406,17 @@ const getIconComponent = (iconName: string) => {
 
 // Handle click
 const handleClick = async (e: Event) => {
-    // If it's a URL action without backend action, let default behavior handle it
+    // If it's a URL action without backend action, navigate using Inertia
     if (props.url && !props.hasAction) {
+        e.preventDefault();
+        router.visit(props.url);
+        return;
+    }
+
+    // If it's a link variant with a URL, just navigate using Inertia
+    if (props.variant === 'link' && props.url && !props.actionToken) {
+        e.preventDefault();
+        router.visit(props.url);
         return;
     }
 
@@ -390,8 +426,8 @@ const handleClick = async (e: Event) => {
         e.stopPropagation();
     }
 
-    // Show modal if requires confirmation
-    if (props.requiresConfirmation) {
+    // Show modal if requires confirmation OR has a form schema
+    if (props.requiresConfirmation || (props.modalFormSchema && props.modalFormSchema.length > 0)) {
         showModal.value = true;
         return;
     }
@@ -408,14 +444,25 @@ const executeAction = async () => {
         return;
     }
 
-    // Validate form before executing action (if validateForm is available)
+    // Validate modal form if it exists
+    const formRef = props.slideOver ? slideOverFormRef.value : modalFormRef.value;
+    if (formRef && typeof formRef.validateForm === 'function') {
+        if (!formRef.validateForm()) {
+            return;
+        }
+    }
+
+    // Validate parent form before executing action (if validateForm is available from parent)
     if (validateForm && !validateForm()) {
-        console.log('ActionButton: form validation failed, aborting action');
         return;
     }
 
-    // If action has token, execute via backend
-    if (props.actionUrl && props.actionToken) {
+    // Determine which type of action this is
+    const isClosureAction = !!props.actionUrl;  // Has actionUrl = closure-based action
+    const executionUrl = props.actionUrl || props.url;
+
+    // If action has URL, execute via backend
+    if (executionUrl) {
         isLoading.value = true;
 
         try {
@@ -430,26 +477,48 @@ const executeAction = async () => {
                 actionData = props.data;
             }
 
-            router.post(
-                props.actionUrl,
-                {
-                    token: props.actionToken,
-                    data: actionData,
+            const requestOptions: any = {
+                // Preserve state on errors (validation errors should keep form data)
+                // But on success, use the prop value
+                preserveState: (page) => {
+                    // If there are errors, always preserve state to keep form data
+                    if (Object.keys(page.props.errors || {}).length > 0) {
+                        return true;
+                    }
+                    // Otherwise, use the configured value
+                    return props.preserveState;
                 },
-                {
-                    preserveState: true,
-                    preserveScroll: true, // Always preserve scroll position
-                    only: ['actionUpdatedData', 'notifications'], // Only reload these props
-                    onSuccess: (page) => {
-                        showModal.value = false;
-                        formData.value = {};
+                preserveScroll: (page) => {
+                    // If there are errors, always preserve scroll
+                    if (Object.keys(page.props.errors || {}).length > 0) {
+                        return true;
+                    }
+                    // Otherwise, use the configured value
+                    return props.preserveScroll;
+                },
+                onSuccess: (page) => {
+                    showModal.value = false;
+                    formData.value = {};
 
-                        // If this is a bulk action and should deselect records after completion
-                        if (props.isBulkAction && props.deselectRecordsAfterCompletion === true) {
-                            window.dispatchEvent(new CustomEvent('bulk-action-completed'));
-                        }
+                    // Check if the action returned a redirect URL (for closure actions)
+                    if (isClosureAction && page?.props?.actionUpdatedData?.redirect) {
+                        const redirectUrl = page.props.actionUpdatedData.redirect as string;
+                        window.location.href = redirectUrl;
+                        return;
+                    }
 
-                        // If the action updated form data (via Set), merge it back into parent form
+                    // Close modal on success
+                    showModal.value = false;
+                    formData.value = {};
+
+                    // If this is a bulk action and should deselect records after completion
+                    if (props.isBulkAction && props.deselectRecordsAfterCompletion === true) {
+                        window.dispatchEvent(new CustomEvent('bulk-action-completed'));
+                    }
+
+                    // If the action updated form data (via Set), merge it back into parent form
+                    // Only check for updated data if preserveState is true (otherwise page.props might not exist)
+                    if (props.preserveState && page?.props) {
                         const updatedData = page.props.actionUpdatedData as Record<string, any> | null;
                         if (updatedData && Object.keys(updatedData).length > 0) {
                             // Emit event to update parent form data
@@ -458,14 +527,52 @@ const executeAction = async () => {
                                 detail: updatedData
                             }));
                         }
-                    },
-                    onError: (errors) => {
-                        console.error('Action execution failed:', errors);
-                    },
-                    onFinish: () => {
-                        isLoading.value = false;
-                    },
+                    }
                 },
+                onError: (errors) => {
+                    console.error('Action execution failed:', errors);
+
+                    // Show error notifications for each error
+                    if (errors && typeof errors === 'object') {
+                        const errorMessages = Object.values(errors).flat();
+                        if (errorMessages.length > 0) {
+                            // Show first error as notification (avoid spam if many errors)
+                            const firstError = Array.isArray(errorMessages[0])
+                                ? errorMessages[0][0]
+                                : errorMessages[0];
+
+                            notify({
+                                title: 'Error',
+                                body: String(firstError),
+                                type: 'error',
+                            });
+                        }
+                    }
+                },
+                onFinish: () => {
+                    isLoading.value = false;
+                },
+            };
+
+            // Only use 'only' parameter for closure-based actions when preserveState is true
+            // If preserveState is false, we want a full page reload to get session flashes and updated props
+            if (isClosureAction && props.preserveState !== false) {
+                requestOptions.only = ['actionUpdatedData', 'notifications', 'errors'];
+            }
+
+            // If action has a token (closure action), send it with data wrapped
+            // Otherwise (URL action), just send the form data directly
+            const requestData = props.actionToken
+                ? { token: props.actionToken, data: actionData }
+                : actionData;
+
+            // Use the appropriate HTTP method
+            const method = (props.method || 'POST').toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+            router[method](
+                executionUrl,
+                requestData,
+                requestOptions,
             );
         } catch (error) {
             console.error('Action execution error:', error);

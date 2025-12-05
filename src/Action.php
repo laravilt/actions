@@ -48,6 +48,16 @@ class Action implements Arrayable
 
     protected ?string $cachedActionToken = null;
 
+    protected bool $preserveState = true;
+
+    protected bool $preserveScroll = true;
+
+    protected string $method = 'POST';
+
+    protected bool $isSubmit = false;
+
+    protected ?string $form = null;
+
     final public function __construct(?string $name = null)
     {
         $this->name = $name;
@@ -105,6 +115,68 @@ class Action implements Arrayable
         $this->tooltip = $tooltip;
 
         return $this;
+    }
+
+    public function preserveState(bool $preserve = true): static
+    {
+        $this->preserveState = $preserve;
+
+        return $this;
+    }
+
+    public function preserveScroll(bool $preserve = true): static
+    {
+        $this->preserveScroll = $preserve;
+
+        return $this;
+    }
+
+    public function method(string $method): static
+    {
+        $this->method = strtoupper($method);
+
+        return $this;
+    }
+
+    public function getMethod(): string
+    {
+        return $this->method;
+    }
+
+    /**
+     * Set whether this action should submit a form.
+     */
+    public function submit(bool $condition = true): static
+    {
+        $this->isSubmit = $condition;
+
+        return $this;
+    }
+
+    /**
+     * Specify which form this action should submit.
+     */
+    public function form(?string $form): static
+    {
+        $this->form = $form;
+
+        return $this;
+    }
+
+    /**
+     * Check if this action should submit a form.
+     */
+    public function isSubmit(): bool
+    {
+        return $this->isSubmit;
+    }
+
+    /**
+     * Get the form this action submits.
+     */
+    public function getForm(): ?string
+    {
+        return $this->form;
     }
 
     public function extraAttributes(array $attributes): static
@@ -253,6 +325,19 @@ class Action implements Arrayable
     }
 
     /**
+     * Clear component context to make this a standalone action.
+     * Used when converting a component-based action to a standalone action with a closure.
+     */
+    public function clearComponent(): static
+    {
+        $this->componentClass = null;
+        $this->componentId = null;
+        $this->panelId = null;
+
+        return $this;
+    }
+
+    /**
      * Generate an encrypted action token.
      */
     public function getActionToken(): string
@@ -280,8 +365,9 @@ class Action implements Arrayable
             return $this->cachedActionToken;
         }
 
-        // Generate action ID based on action name for consistency
-        $actionId = 'action_'.$this->getName();
+        // Generate unique action ID using name and a unique identifier
+        // This prevents conflicts when multiple actions with the same name exist (e.g., delete actions for different records)
+        $actionId = 'action_'.$this->getName().'_'.uniqid();
 
         // Wrap closure in SerializableClosure to allow session storage
         $serializableClosure = new \Laravel\SerializableClosure\SerializableClosure($this->action);
@@ -307,6 +393,24 @@ class Action implements Arrayable
         }
 
         return call_user_func($this->action, $record, $data);
+    }
+
+    /**
+     * Get the component (Page) class this action belongs to.
+     */
+    public function getComponentClass(): ?string
+    {
+        return $this->componentClass;
+    }
+
+    /**
+     * Resolve the action's configuration based on record context.
+     * Override this in subclasses to auto-configure URLs/actions based on the record.
+     */
+    public function resolveRecordContext(mixed $record): static
+    {
+        // Base implementation does nothing - subclasses override this
+        return $this;
     }
 
     public function toArray(): array
@@ -337,9 +441,15 @@ class Action implements Arrayable
             'variant' => $this->getVariant(),
             'tooltip' => $this->getTooltip(),
             'extraAttributes' => $this->getExtraAttributes(),
-            'hasAction' => $this->action !== null, // Indicates if action has a closure/method
-            'actionUrl' => $this->getActionUrl(), // Action submission URL
+            'hasAction' => $this->action !== null, // Only true if there's a backend action closure
+            // Only set actionUrl for closure-based actions, not for URL-based actions
+            'actionUrl' => ($this->action !== null) ? $this->getActionUrl() : null, // Action submission URL (for closures)
             'actionToken' => ($this->componentClass || $this->action) ? $this->getActionToken() : null, // Encrypted token
+            'preserveState' => $this->preserveState,
+            'preserveScroll' => $this->preserveScroll,
+            'method' => $this->getMethod(),
+            'isSubmit' => $this->isSubmit(),
+            'form' => $this->getForm(),
         ];
 
         // Filter out null/empty values to reduce payload size and avoid undefined behavior
@@ -347,6 +457,11 @@ class Action implements Arrayable
             // Keep false, 0, and empty arrays, but remove null and empty strings
             return $value !== null && $value !== '';
         });
+    }
+
+    public function toLaraviltProps(): array
+    {
+        return $this->toArray();
     }
 
     public function toInertiaProps(): array

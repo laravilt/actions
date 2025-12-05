@@ -2,13 +2,15 @@
 
 namespace Laravilt\Actions\Concerns;
 
+use Closure;
+
 trait HasUrl
 {
-    protected ?string $url = null;
+    protected string|Closure|null $url = null;
 
     protected bool $shouldOpenUrlInNewTab = false;
 
-    public function url(?string $url, bool $shouldOpenInNewTab = false): static
+    public function url(string|Closure|null $url, bool $shouldOpenInNewTab = false): static
     {
         $this->url = $url;
         $this->shouldOpenUrlInNewTab = $shouldOpenInNewTab;
@@ -23,7 +25,7 @@ trait HasUrl
         return $this;
     }
 
-    public function getUrl(): ?string
+    public function getUrl(): string|Closure|null
     {
         return $this->url;
     }

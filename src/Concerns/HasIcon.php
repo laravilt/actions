@@ -8,9 +8,18 @@ trait HasIcon
 
     protected ?string $iconPosition = 'before';
 
-    public function icon(?string $icon, ?string $position = 'before'): static
+    public function icon(?string $icon, ?string $position = null): static
     {
         $this->icon = $icon;
+        if ($position !== null) {
+            $this->iconPosition = $position;
+        }
+
+        return $this;
+    }
+
+    public function iconPosition(string $position): static
+    {
         $this->iconPosition = $position;
 
         return $this;
