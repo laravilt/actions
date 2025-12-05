@@ -23,7 +23,7 @@ class DeleteAction extends Action
     public function resolveRecordContext(mixed $recordId): static
     {
         // Only set action if not already configured
-        if (!$this->getAction()) {
+        if (! $this->getAction()) {
             // Get the Page class this action belongs to
             $pageClass = $this->getComponentClass();
 
