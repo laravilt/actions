@@ -20,7 +20,7 @@ class CreateAction extends Action
     public function toArray(): array
     {
         // Auto-configure URL if not already set and we have component context
-        if (!$this->getUrl()) {
+        if (! $this->getUrl()) {
             $pageClass = $this->getComponentClass();
 
             if ($pageClass && method_exists($pageClass, 'getResource')) {

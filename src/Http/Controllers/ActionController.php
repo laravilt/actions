@@ -68,7 +68,8 @@ class ActionController extends Controller
 
             // If the result is a redirect response, return it directly for Inertia to handle
             if ($result instanceof \Illuminate\Http\RedirectResponse) {
-                \Log::info('ActionController: Returning redirect to: ' . $result->getTargetUrl());
+                \Log::info('ActionController: Returning redirect to: '.$result->getTargetUrl());
+
                 return $result;
             }
 
