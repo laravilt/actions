@@ -100,6 +100,10 @@ class ActionController extends Controller
      */
     protected function executeStandaloneAction(array $payload, Request $request)
     {
+        \Log::info('ActionController::executeStandaloneAction called', [
+            'session_id' => session()->getId(),
+        ]);
+
         $actionId = $payload['action_id'];
 
         // Get the serializable closure from session
@@ -192,14 +196,48 @@ class ActionController extends Controller
         // Determine what to flash to session
         // If result is an array, merge it with the original data (so both custom result and form data are available)
         // Otherwise just use the original data
-        if (is_array($result) && count($result) > 0) {
-            session()->flash('action_updated_data', array_merge($data, $result));
-        } else {
-            session()->flash('action_updated_data', $data);
+        $actionData = is_array($result) && count($result) > 0
+            ? array_merge($data, $result)
+            : $data;
+
+        // Get any notification that was flashed during action execution
+        $notification = session()->pull('laravilt.notification');
+        $notificationsArray = session()->pull('notifications', []);
+
+        // Build the notifications array
+        $notifications = [];
+        if ($notification) {
+            $notifications[] = $notification;
+        }
+        if (!empty($notificationsArray) && is_array($notificationsArray)) {
+            $notifications = array_merge($notifications, $notificationsArray);
         }
 
-        // Return back with 303 status to preserve scroll position
-        return redirect()->back(303);
+        // Flash data for the redirect
+        session()->flash('action_updated_data', $actionData);
+        session()->flash('_laravilt_notifications', $notifications);
+
+        // Create redirect response
+        $redirect = redirect()->back(303);
+
+        // Add notifications to a cookie for frontend to read
+        // Cookies persist across redirects, unlike response headers
+        // The cookie is NOT encrypted (excluded in middleware) so JS can read it
+        if (!empty($notifications)) {
+            $redirect->cookie(
+                'laravilt_notifications',
+                base64_encode(json_encode($notifications)),
+                1, // 1 minute expiry (short-lived)
+                '/',
+                null,
+                false, // secure
+                false, // httpOnly - must be false so JS can read it
+                false, // raw
+                'Lax'
+            );
+        }
+
+        return $redirect;
     }
 
     /**

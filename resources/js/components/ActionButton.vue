@@ -554,11 +554,8 @@ const executeAction = async () => {
                 },
             };
 
-            // Only use 'only' parameter for closure-based actions when preserveState is true
-            // If preserveState is false, we want a full page reload to get session flashes and updated props
-            if (isClosureAction && props.preserveState !== false) {
-                requestOptions.only = ['actionUpdatedData', 'notifications', 'errors'];
-            }
+            // Don't use 'only' parameter - we need a full page reload to get session flash data
+            // The session flash data is only available on full page loads, not partial Inertia requests
 
             // If action has a token (closure action), send it with data wrapped
             // Otherwise (URL action), just send the form data directly
