@@ -210,7 +210,7 @@ class ActionController extends Controller
         if ($notification) {
             $notifications[] = $notification;
         }
-        if (!empty($notificationsArray) && is_array($notificationsArray)) {
+        if (! empty($notificationsArray) && is_array($notificationsArray)) {
             $notifications = array_merge($notifications, $notificationsArray);
         }
 
@@ -224,7 +224,7 @@ class ActionController extends Controller
         // Add notifications to a cookie for frontend to read
         // Cookies persist across redirects, unlike response headers
         // The cookie is NOT encrypted (excluded in middleware) so JS can read it
-        if (!empty($notifications)) {
+        if (! empty($notifications)) {
             $redirect->cookie(
                 'laravilt_notifications',
                 base64_encode(json_encode($notifications)),
