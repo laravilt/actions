@@ -245,9 +245,10 @@ class ActionController extends Controller
         // If the result is a redirect response, attach notifications and return it
         if ($result instanceof \Illuminate\Http\RedirectResponse) {
             // Flash notifications for the redirect destination
-            if (!empty($notifications)) {
+            if (! empty($notifications)) {
                 session()->flash('_laravilt_notifications', $notifications);
             }
+
             return $result;
         }
 
