@@ -238,7 +238,7 @@ class ActionController extends Controller
         if ($notification) {
             $notifications[] = $notification;
         }
-        if (!empty($notificationsArray) && is_array($notificationsArray)) {
+        if (! empty($notificationsArray) && is_array($notificationsArray)) {
             $notifications = array_merge($notifications, $notificationsArray);
         }
 
@@ -265,10 +265,26 @@ class ActionController extends Controller
         session()->flash('_laravilt_notifications', $notifications);
 
         // Create redirect response
-        // Note: Notifications are already flashed to session via '_laravilt_notifications' key
-        // which is picked up by SharePanelData middleware and shared to Inertia props
-        // Do NOT also send via cookie as that causes duplicate notifications
-        return redirect()->back(303);
+        $redirect = redirect()->back(303);
+
+        // Add notifications to a cookie for frontend to read
+        // Cookies persist across redirects, unlike response headers
+        // The cookie is NOT encrypted (excluded in middleware) so JS can read it
+        if (! empty($notifications)) {
+            $redirect->cookie(
+                'laravilt_notifications',
+                base64_encode(json_encode($notifications)),
+                1, // 1 minute expiry (short-lived)
+                '/',
+                null,
+                false, // secure
+                false, // httpOnly - must be false so JS can read it
+                false, // raw
+                'Lax'
+            );
+        }
+
+        return $redirect;
     }
 
     /**
