@@ -138,10 +138,39 @@ class ActionController extends Controller
         $args = [];
 
         // Extract record from data if present (from table actions)
-        $record = isset($data['record']) && is_array($data['record']) ? $data['record'] : null;
+        // The record is sent as an array with 'id' and optionally 'model' class
+        $record = null;
+        if (isset($data['record']) && is_array($data['record'])) {
+            $recordData = $data['record'];
+            // Try to hydrate the record back to an Eloquent model
+            if (isset($recordData['id']) && isset($data['model'])) {
+                $modelClass = $data['model'];
+                if (class_exists($modelClass)) {
+                    $record = $modelClass::find($recordData['id']);
+                }
+            } elseif (isset($recordData['id']) && isset($recordData['_model'])) {
+                // Alternative: model class stored in record itself
+                $modelClass = $recordData['_model'];
+                if (class_exists($modelClass)) {
+                    $record = $modelClass::find($recordData['id']);
+                }
+            } else {
+                // Fallback to raw array if we can't hydrate
+                $record = $recordData;
+            }
+        }
 
-        // Extract ids for bulk actions
-        $ids = isset($data['ids']) && is_array($data['ids']) ? $data['ids'] : null;
+        // Extract ids for bulk actions and hydrate to collection if model is specified
+        $ids = null;
+        $records = null;
+        if (isset($data['ids']) && is_array($data['ids'])) {
+            $ids = $data['ids'];
+            // Try to hydrate to a collection of models
+            if (isset($data['model']) && class_exists($data['model'])) {
+                $modelClass = $data['model'];
+                $records = $modelClass::whereIn('id', $ids)->get();
+            }
+        }
 
         foreach ($parameters as $parameter) {
             $type = $parameter->getType();
@@ -164,13 +193,24 @@ class ActionController extends Controller
             elseif ($paramName === 'record') {
                 $args[] = $record;
             }
-            // Parameter explicitly named 'records' or 'ids' gets the ids array (for bulk actions)
-            elseif (($paramName === 'records' || $paramName === 'ids') && $ids !== null) {
+            // Parameter explicitly named 'records' gets the hydrated collection (for bulk actions)
+            elseif ($paramName === 'records' && $records !== null) {
+                $args[] = $records;
+            }
+            // Parameter explicitly named 'ids' gets the ids array (for bulk actions)
+            elseif ($paramName === 'ids' && $ids !== null) {
                 $args[] = $ids;
             }
-            // First untyped parameter - if we have ids (bulk action), pass ids; otherwise pass record
+            // First untyped parameter - if we have records (bulk action), pass records collection;
+            // if we have ids but no hydrated records, pass ids; otherwise pass record
             elseif ($typeName === null && count($args) === 0) {
-                $args[] = $ids !== null ? $ids : $record;
+                if ($records !== null) {
+                    $args[] = $records;
+                } elseif ($ids !== null) {
+                    $args[] = $ids;
+                } else {
+                    $args[] = $record;
+                }
             }
             // Second untyped parameter gets the data array
             elseif ($typeName === null) {
@@ -189,19 +229,7 @@ class ActionController extends Controller
         // Any exceptions (including ValidationException) will bubble up to the main execute method
         $result = $actionClosure(...$args);
 
-        // If the result is a redirect response, return it directly
-        if ($result instanceof \Illuminate\Http\RedirectResponse) {
-            return $result;
-        }
-
-        // Determine what to flash to session
-        // If result is an array, merge it with the original data (so both custom result and form data are available)
-        // Otherwise just use the original data
-        $actionData = is_array($result) && count($result) > 0
-            ? array_merge($data, $result)
-            : $data;
-
-        // Get any notification that was flashed during action execution
+        // Get any notification that was flashed during action execution (BEFORE handling redirect)
         $notification = session()->pull('laravilt.notification');
         $notificationsArray = session()->pull('notifications', []);
 
@@ -214,31 +242,33 @@ class ActionController extends Controller
             $notifications = array_merge($notifications, $notificationsArray);
         }
 
+        // If the result is a redirect response, attach notifications and return it
+        if ($result instanceof \Illuminate\Http\RedirectResponse) {
+            // Flash notifications for the redirect destination
+            if (!empty($notifications)) {
+                session()->flash('_laravilt_notifications', $notifications);
+            }
+            return $result;
+        }
+
+        // Determine what to flash to session
+        // If result is an array, merge it with the original data (so both custom result and form data are available)
+        // Otherwise just use the original data
+        $actionData = is_array($result) && count($result) > 0
+            ? array_merge($data, $result)
+            : $data;
+
+        // Note: $notifications was already pulled from session earlier (before handling redirect)
+
         // Flash data for the redirect
         session()->flash('action_updated_data', $actionData);
         session()->flash('_laravilt_notifications', $notifications);
 
         // Create redirect response
-        $redirect = redirect()->back(303);
-
-        // Add notifications to a cookie for frontend to read
-        // Cookies persist across redirects, unlike response headers
-        // The cookie is NOT encrypted (excluded in middleware) so JS can read it
-        if (!empty($notifications)) {
-            $redirect->cookie(
-                'laravilt_notifications',
-                base64_encode(json_encode($notifications)),
-                1, // 1 minute expiry (short-lived)
-                '/',
-                null,
-                false, // secure
-                false, // httpOnly - must be false so JS can read it
-                false, // raw
-                'Lax'
-            );
-        }
-
-        return $redirect;
+        // Note: Notifications are already flashed to session via '_laravilt_notifications' key
+        // which is picked up by SharePanelData middleware and shared to Inertia props
+        // Do NOT also send via cookie as that causes duplicate notifications
+        return redirect()->back(303);
     }
 
     /**

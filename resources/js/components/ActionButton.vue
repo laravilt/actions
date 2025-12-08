@@ -73,7 +73,7 @@
             <!-- Modal Content -->
             <div v-if="modalContent" class="py-4 text-center" v-html="modalContent"></div>
 
-            <DialogFooter :class="hasFormSchema ? 'sm:justify-end' : 'sm:justify-center'" class="gap-2">
+            <DialogFooter :class="hasFormSchema ? 'sm:justify-end rtl:sm:justify-start' : 'sm:justify-center'" class="gap-2 rtl:flex-row-reverse">
                 <Button
                     variant="outline"
                     @click="showModal = false"
@@ -86,7 +86,7 @@
                     :variant="modalButtonVariant"
                     :class="modalButtonClass"
                 >
-                    <Spinner v-if="isLoading" class="size-3 mr-2" />
+                    <Spinner v-if="isLoading" class="size-3 me-2" />
                     {{ modalSubmitActionLabel || 'Confirm' }}
                 </Button>
             </DialogFooter>
@@ -117,7 +117,7 @@
             <!-- Content -->
             <div v-if="modalContent" class="px-4 py-4 text-center" v-html="modalContent"></div>
 
-            <SheetFooter :class="hasFormSchema ? 'sm:justify-end' : 'justify-center'" class="gap-2">
+            <SheetFooter :class="hasFormSchema ? 'sm:justify-end rtl:sm:justify-start' : 'justify-center'" class="gap-2 rtl:flex-row-reverse">
                 <Button
                     variant="outline"
                     @click="showModal = false"
@@ -130,7 +130,7 @@
                     :variant="modalButtonVariant"
                     :class="modalButtonClass"
                 >
-                    <Spinner v-if="isLoading" class="size-3 mr-2" />
+                    <Spinner v-if="isLoading" class="size-3 me-2" />
                     {{ modalSubmitActionLabel || 'Confirm' }}
                 </Button>
             </SheetFooter>
@@ -262,11 +262,11 @@ const buttonVariant = computed(() => {
 
 // Button classes
 const buttonClass = computed(() => {
-    const classes = [];
+    const classes = ['cursor-pointer'];
 
     // Icon variant - no background, color on icon only
     if (props.variant === 'icon') {
-        return cn(...classes); // Return empty for now, color will be on icon
+        return cn(...classes); // Return with cursor-pointer, color will be on icon
     }
 
     // Add custom color classes for non-standard colors (non-icon variants)
@@ -406,8 +406,18 @@ const getIconComponent = (iconName: string) => {
 
 // Handle click
 const handleClick = async (e: Event) => {
-    // If it's a URL action without backend action, navigate using Inertia
-    if (props.url && !props.hasAction) {
+    // Show modal if requires confirmation OR has a form schema
+    // This takes priority over direct navigation
+    if (props.requiresConfirmation || (props.modalFormSchema && props.modalFormSchema.length > 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+        showModal.value = true;
+        return;
+    }
+
+    // If it's a URL action without backend action AND not a special method, navigate using Inertia
+    // (DELETE, PUT, PATCH need to go through executeAction)
+    if (props.url && !props.hasAction && (!props.method || props.method === 'GET')) {
         e.preventDefault();
         router.visit(props.url);
         return;
@@ -421,25 +431,24 @@ const handleClick = async (e: Event) => {
     }
 
     // Only prevent default for non-button elements or when we have an action
-    if (props.hasAction) {
+    if (props.hasAction || hasUrlBasedAction.value) {
         e.preventDefault();
         e.stopPropagation();
-    }
-
-    // Show modal if requires confirmation OR has a form schema
-    if (props.requiresConfirmation || (props.modalFormSchema && props.modalFormSchema.length > 0)) {
-        showModal.value = true;
-        return;
     }
 
     // Execute action directly
     await executeAction();
 };
 
+// Check if this action needs URL-based execution (URL + non-GET method)
+const hasUrlBasedAction = computed(() => {
+    return props.url && props.method && props.method !== 'GET';
+});
+
 // Execute the action
 const executeAction = async () => {
-    // If no action to execute, just close modal
-    if (!props.hasAction) {
+    // If no closure action AND no URL-based action, just close modal
+    if (!props.hasAction && !hasUrlBasedAction.value) {
         showModal.value = false;
         return;
     }

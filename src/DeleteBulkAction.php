@@ -36,9 +36,9 @@ class DeleteBulkAction extends BulkAction
         // Set up the default delete action
         $this->action(function (array $ids) use ($modelClass) {
             if (empty($ids)) {
-                Notification::make()
+                Notification::warning()
                     ->title('No records selected')
-                    ->warning()
+                    ->body('Please select at least one record to delete.')
                     ->send();
 
                 return;
@@ -46,10 +46,9 @@ class DeleteBulkAction extends BulkAction
 
             $deleted = $modelClass::whereIn('id', $ids)->delete();
 
-            Notification::make()
+            Notification::success()
                 ->title('Records deleted')
                 ->body("{$deleted} record(s) were deleted successfully.")
-                ->success()
                 ->send();
         });
 

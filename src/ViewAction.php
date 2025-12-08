@@ -11,7 +11,8 @@ class ViewAction extends Action
         return $action
             ->label('View')
             ->icon('Eye')
-            ->color('secondary');
+            ->color('secondary')
+            ->method('GET'); // Navigation action - use GET
     }
 
     /**

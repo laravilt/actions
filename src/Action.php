@@ -342,11 +342,13 @@ class Action implements Arrayable
      */
     public function getActionToken(): string
     {
-        // Check if this is a standalone action (has closure but no component)
-        if ($this->action && ! $this->componentClass) {
+        // If action has a closure, always use standalone token (stored in session)
+        // This ensures the closure is executed directly, not through component resolution
+        if ($this->action) {
             return $this->getStandaloneActionToken();
         }
 
+        // Component-based actions (no closure) use encrypted component metadata
         return \Illuminate\Support\Facades\Crypt::encrypt([
             'component' => $this->componentClass,
             'id' => $this->componentId,
@@ -415,6 +417,14 @@ class Action implements Arrayable
 
     public function toArray(): array
     {
+        return $this->toArrayWithRecord(null);
+    }
+
+    /**
+     * Convert action to array with record context for evaluating visibility.
+     */
+    public function toArrayWithRecord(mixed $record = null): array
+    {
         $data = [
             'name' => $this->getName(),
             'label' => $this->getLabel(),
@@ -434,7 +444,7 @@ class Action implements Arrayable
             'requiresPassword' => $this->getRequiresPassword(),
             'modalContent' => $this->getModalContent(),
             'slideOver' => $this->isSlideOver(),
-            'isHidden' => $this->isHidden(),
+            'isHidden' => $this->isHidden($record),
             'isDisabled' => $this->isDisabled(),
             'isOutlined' => $this->isOutlined(),
             'size' => $this->getSize(),

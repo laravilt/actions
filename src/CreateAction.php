@@ -11,7 +11,8 @@ class CreateAction extends Action
         return $action
             ->label('Create')
             ->icon('Plus')
-            ->color('primary');
+            ->color('primary')
+            ->method('GET'); // Navigation action - use GET
     }
 
     /**

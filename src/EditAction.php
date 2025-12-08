@@ -11,7 +11,8 @@ class EditAction extends Action
         return $action
             ->label('Edit')
             ->icon('Pencil')
-            ->color('warning');
+            ->color('warning')
+            ->method('GET'); // Navigation action - use GET
     }
 
     /**

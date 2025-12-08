@@ -38,6 +38,11 @@ class DeleteAction extends Action
                         $record = $modelClass::findOrFail($recordId);
                         $record->delete();
 
+                        \Laravilt\Notifications\Notification::success()
+                            ->title('Deleted successfully')
+                            ->body('The record has been deleted.')
+                            ->send();
+
                         return redirect($resource::getUrl('list'));
                     });
 
