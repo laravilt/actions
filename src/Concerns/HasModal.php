@@ -43,7 +43,7 @@ trait HasModal
 
     public function hasModal(): bool
     {
-        return $this->hasModal || $this->requiresConfirmation || !empty($this->modalFormSchema) || !empty($this->modalInfolistSchema);
+        return $this->hasModal || $this->requiresConfirmation || ! empty($this->modalFormSchema) || ! empty($this->modalInfolistSchema);
     }
 
     public function modalHeading(?string $heading): static

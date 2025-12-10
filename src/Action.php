@@ -441,6 +441,7 @@ class Action implements Arrayable
             if (is_array($item)) {
                 return $item;
             }
+
             return $item;
         }, $schema);
     }

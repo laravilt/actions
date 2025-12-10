@@ -71,7 +71,7 @@ class CreateAction extends Action
             $modelClass = $this->modelClass;
 
             return $this->action(function ($record, array $data) use ($modelClass) {
-                $newRecord = new $modelClass();
+                $newRecord = new $modelClass;
                 $newRecord->fill($data);
                 $newRecord->save();
 
@@ -98,17 +98,17 @@ class CreateAction extends Action
 
         $pageClass = $this->getComponentClass();
 
-        if (!$pageClass) {
+        if (! $pageClass) {
             return $this;
         }
 
         // Check if page has a resource
-        if (!method_exists($pageClass, 'getResource')) {
+        if (! method_exists($pageClass, 'getResource')) {
             return $this;
         }
 
         $resource = $pageClass::getResource();
-        if (!$resource) {
+        if (! $resource) {
             return $this;
         }
 
@@ -137,14 +137,14 @@ class CreateAction extends Action
 
             // Configure as modal action
             $this->stableId("{$slug}_create");
-            $this->label(__('actions::actions.buttons.create') . ' ' . $label);
-            $this->modalHeading(__('actions::actions.buttons.create') . ' ' . $label);
+            $this->label(__('actions::actions.buttons.create').' '.$label);
+            $this->modalHeading(__('actions::actions.buttons.create').' '.$label);
             $this->model($modelClass);
             $this->formSchema($formSchema);
             $this->using();
         } else {
             // Full resource - configure as navigation action
-            $this->label(__('actions::actions.buttons.create') . ' ' . $label);
+            $this->label(__('actions::actions.buttons.create').' '.$label);
             $this->method('GET');
             $this->url($resource::getUrl('create'));
         }

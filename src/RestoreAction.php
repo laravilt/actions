@@ -32,7 +32,7 @@ class RestoreAction extends Action
 
         // For array data, check deleted_at
         if (is_array($record)) {
-            return !empty($record['deleted_at']);
+            return ! empty($record['deleted_at']);
         }
 
         return false;
