@@ -51,43 +51,49 @@
 
     <!-- Action Confirmation Modal -->
     <Dialog v-if="!slideOver" v-model:open="showModal">
-        <DialogContent class="sm:max-w-md">
-            <DialogHeader :class="hasFormSchema ? '' : 'text-center sm:text-center'">
+        <DialogContent :class="modalWidthClass">
+            <DialogHeader :class="hasFormOrInfolistSchema ? 'text-start' : 'text-center sm:text-center'">
                 <div v-if="modalIcon" class="mx-auto mb-4 flex size-12 items-center justify-center rounded-full" :class="modalIconClass">
                     <component
                         :is="getIconComponent(modalIcon)"
                         class="size-6"
                     />
                 </div>
-                <DialogTitle v-if="modalHeading" :class="hasFormSchema ? '' : 'text-center'">{{ modalHeading }}</DialogTitle>
-                <DialogDescription v-if="modalDescription" :class="hasFormSchema ? '' : 'text-center'">{{ modalDescription }}</DialogDescription>
+                <DialogTitle v-if="modalHeading" :class="hasFormOrInfolistSchema ? 'text-start' : 'text-center'">{{ modalHeading }}</DialogTitle>
+                <DialogDescription v-if="modalDescription" :class="hasFormOrInfolistSchema ? 'text-start' : 'text-center'">{{ modalDescription }}</DialogDescription>
             </DialogHeader>
 
+            <!-- Modal Infolist Schema (for view only) -->
+            <div v-if="modalInfolistSchema && modalInfolistSchema.length" class="-mx-6 px-6 py-4 max-h-[60vh] overflow-y-auto scroll-smooth overscroll-contain">
+                <InfoList :schema="filledInfolistSchema" />
+            </div>
+
             <!-- Modal Form Schema -->
-            <div v-if="modalFormSchema && modalFormSchema.length" class="py-4">
+            <div v-else-if="modalFormSchema && modalFormSchema.length" class="-mx-6 px-6 py-4 max-h-[60vh] overflow-y-auto scroll-smooth overscroll-contain">
                 <ErrorProvider :errors="page.props.errors as Record<string, string | string[]>">
-                    <FormRenderer ref="modalFormRef" :schema="modalFormSchema" v-model="formData" />
+                    <Form ref="modalFormRef" :schema="modalFormSchema" v-model="formData" :disabled="isViewOnly" :form-controller="modalFormController" />
                 </ErrorProvider>
             </div>
 
             <!-- Modal Content -->
             <div v-if="modalContent" class="py-4 text-center" v-html="modalContent"></div>
 
-            <DialogFooter :class="hasFormSchema ? 'sm:justify-end rtl:sm:justify-start' : 'sm:justify-center'" class="gap-2 rtl:flex-row-reverse">
+            <DialogFooter :class="hasFormOrInfolistSchema ? 'sm:justify-end rtl:justify-start' : 'sm:justify-center'" class="gap-2">
                 <Button
                     variant="outline"
                     @click="showModal = false"
                 >
-                    {{ modalCancelActionLabel || 'Cancel' }}
+                    {{ translatedCancelLabel }}
                 </Button>
                 <Button
+                    v-if="!isViewOnly && translatedConfirmLabel"
                     @click="executeAction"
                     :disabled="isLoading"
                     :variant="modalButtonVariant"
                     :class="modalButtonClass"
                 >
                     <Spinner v-if="isLoading" class="size-3 me-2" />
-                    {{ modalSubmitActionLabel || 'Confirm' }}
+                    {{ translatedConfirmLabel }}
                 </Button>
             </DialogFooter>
         </DialogContent>
@@ -96,42 +102,43 @@
     <!-- Action Confirmation Slideover -->
     <Sheet v-else v-model:open="showModal">
         <SheetContent>
-            <SheetHeader :class="hasFormSchema ? '' : 'text-center'">
+            <SheetHeader :class="hasFormSchema ? 'text-start' : 'text-center'">
                 <div v-if="modalIcon" class="mx-auto mb-4 flex size-12 items-center justify-center rounded-full" :class="modalIconClass">
                     <component
                         :is="getIconComponent(modalIcon)"
                         class="size-6"
                     />
                 </div>
-                <SheetTitle v-if="modalHeading" :class="hasFormSchema ? '' : 'text-center'">{{ modalHeading }}</SheetTitle>
-                <SheetDescription v-if="modalDescription" :class="hasFormSchema ? '' : 'text-center'">{{ modalDescription }}</SheetDescription>
+                <SheetTitle v-if="modalHeading" :class="hasFormSchema ? 'text-start' : 'text-center'">{{ modalHeading }}</SheetTitle>
+                <SheetDescription v-if="modalDescription" :class="hasFormSchema ? 'text-start' : 'text-center'">{{ modalDescription }}</SheetDescription>
             </SheetHeader>
 
             <!-- Form Schema -->
-            <div v-if="modalFormSchema && modalFormSchema.length" class="px-4 py-4">
+            <div v-if="modalFormSchema && modalFormSchema.length" class="px-4 py-4 max-h-[70vh] overflow-y-auto scroll-smooth overscroll-contain">
                 <ErrorProvider :errors="page.props.errors as Record<string, string | string[]>">
-                    <FormRenderer ref="slideOverFormRef" :schema="modalFormSchema" v-model="formData" />
+                    <Form ref="slideOverFormRef" :schema="modalFormSchema" v-model="formData" :disabled="isViewOnly" :form-controller="modalFormController" />
                 </ErrorProvider>
             </div>
 
             <!-- Content -->
             <div v-if="modalContent" class="px-4 py-4 text-center" v-html="modalContent"></div>
 
-            <SheetFooter :class="hasFormSchema ? 'sm:justify-end rtl:sm:justify-start' : 'justify-center'" class="gap-2 rtl:flex-row-reverse">
+            <SheetFooter :class="hasFormSchema ? 'sm:justify-end rtl:justify-start' : 'justify-center'" class="gap-2">
                 <Button
                     variant="outline"
                     @click="showModal = false"
                 >
-                    {{ modalCancelActionLabel || 'Cancel' }}
+                    {{ translatedCancelLabel }}
                 </Button>
                 <Button
+                    v-if="!isViewOnly && translatedConfirmLabel"
                     @click="executeAction"
                     :disabled="isLoading"
                     :variant="modalButtonVariant"
                     :class="modalButtonClass"
                 >
                     <Spinner v-if="isLoading" class="size-3 me-2" />
-                    {{ modalSubmitActionLabel || 'Confirm' }}
+                    {{ translatedConfirmLabel }}
                 </Button>
             </SheetFooter>
         </SheetContent>
@@ -142,24 +149,33 @@
 import { computed, ref, h, inject } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { cn } from '@/lib/utils';
+
+const emit = defineEmits<{
+    (e: 'action-complete', data?: any): void;
+}>();
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Spinner from '@/components/ui/spinner/Spinner.vue';
-import FormRenderer from '@laravilt/forms/components/FormRenderer.vue';
+import Form from '@laravilt/forms/components/Form.vue';
 import ErrorProvider from '@laravilt/forms/components/ErrorProvider.vue';
+import InfoList from '@laravilt/infolists/components/InfoList.vue';
 import * as LucideIcons from 'lucide-vue-next';
 import { useNotification } from '@laravilt/notifications/composables/useNotification';
+import { useLocalization } from '@/composables/useLocalization';
 
 // Get Inertia page for accessing validation errors
 const page = usePage();
 
-// Inject validateForm from parent FormRenderer (if available)
+// Inject validateForm from parent Form (if available)
 const validateForm = inject<(() => boolean) | undefined>('validateForm', undefined);
 
 // Initialize notification
 const { notify } = useNotification();
+
+// Initialize localization
+const { trans } = useLocalization();
 
 interface ActionProps {
     name?: string;
@@ -174,10 +190,14 @@ interface ActionProps {
     modalDescription?: string;
     modalSubmitActionLabel?: string;
     modalCancelActionLabel?: string;
+    errorNotificationTitle?: string;
     modalIcon?: string;
     modalIconColor?: string;
     modalFormSchema?: any[];
+    modalFormController?: string; // Controller class for reactive fields in modal
+    modalInfolistSchema?: any[]; // Infolist schema for view-only display
     modalContent?: string;
+    modalWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl'; // Modal width
     slideOver?: boolean;
     disabled?: boolean;
     variant?: 'button' | 'icon' | 'link';
@@ -197,6 +217,8 @@ interface ActionProps {
     preserveState?: boolean;
     preserveScroll?: boolean;
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    useAjax?: boolean; // Use fetch API instead of Inertia router (avoids page reload)
+    isViewOnly?: boolean; // View-only mode - no submit, just display
 }
 
 const props = withDefaults(defineProps<ActionProps>(), {
@@ -210,6 +232,11 @@ const props = withDefaults(defineProps<ActionProps>(), {
     preserveState: true,
     preserveScroll: true,
     method: 'POST',
+    modalCancelActionLabel: 'Cancel',
+    modalSubmitActionLabel: 'Confirm',
+    errorNotificationTitle: 'Error',
+    useAjax: false,
+    isViewOnly: false,
 });
 
 const isLoading = ref(false);
@@ -218,10 +245,70 @@ const formData = ref({});
 const modalFormRef = ref<any>(null);
 const slideOverFormRef = ref<any>(null);
 
+// Computed translated labels with fallback to props
+const translatedCancelLabel = computed(() => props.modalCancelActionLabel || trans('actions::actions.buttons.cancel'));
+const translatedConfirmLabel = computed(() => props.modalSubmitActionLabel || trans('actions::actions.buttons.confirm'));
+const translatedErrorTitle = computed(() => props.errorNotificationTitle || trans('notifications::notifications.error'));
+
 // Check if action has a form schema
 const hasFormSchema = computed(() => {
     return props.modalFormSchema && props.modalFormSchema.length > 0;
 });
+
+// Check if action has an infolist schema
+const hasInfolistSchema = computed(() => {
+    return props.modalInfolistSchema && props.modalInfolistSchema.length > 0;
+});
+
+// Check if action has either form or infolist schema
+const hasFormOrInfolistSchema = computed(() => {
+    return hasFormSchema.value || hasInfolistSchema.value;
+});
+
+// Modal width class based on modalWidth prop
+const modalWidthClass = computed(() => {
+    const widthMap: Record<string, string> = {
+        'sm': 'sm:max-w-md',
+        'md': 'sm:max-w-lg',
+        'lg': 'sm:max-w-2xl',
+        'xl': 'sm:max-w-3xl',
+        '2xl': 'sm:max-w-4xl',
+        '3xl': 'sm:max-w-5xl',
+        '4xl': 'sm:max-w-6xl',
+        '5xl': 'sm:max-w-7xl',
+    };
+    return widthMap[props.modalWidth || 'md'] || 'sm:max-w-lg';
+});
+
+// Fill infolist schema with record data
+const filledInfolistSchema = computed(() => {
+    if (!props.modalInfolistSchema || !props.externalFormData) {
+        return props.modalInfolistSchema || [];
+    }
+
+    // Deep clone and fill values from externalFormData
+    return fillInfolistValues(props.modalInfolistSchema, props.externalFormData);
+});
+
+// Helper function to recursively fill infolist values
+const fillInfolistValues = (schema: any[], data: Record<string, any>): any[] => {
+    return schema.map(item => {
+        const filled = { ...item };
+
+        // If item has a name, set its value/state from data
+        if (item.name && data[item.name] !== undefined) {
+            filled.value = data[item.name];
+            filled.state = data[item.name];
+        }
+
+        // Handle nested schema (for sections, grids, etc.)
+        if (item.schema && Array.isArray(item.schema)) {
+            filled.schema = fillInfolistValues(item.schema, data);
+        }
+
+        return filled;
+    });
+};
 
 // Determine component type (Button or Link)
 const componentType = computed(() => {
@@ -404,13 +491,40 @@ const getIconComponent = (iconName: string) => {
     return iconComponent || null;
 };
 
+// Get success message based on HTTP method
+const getSuccessMessage = (method: string): string => {
+    const methodUpper = method.toUpperCase();
+    if (methodUpper === 'POST') {
+        return trans('actions::actions.messages.created');
+    } else if (methodUpper === 'PUT' || methodUpper === 'PATCH') {
+        return trans('actions::actions.messages.updated');
+    } else if (methodUpper === 'DELETE') {
+        return props.isBulkAction
+            ? trans('actions::actions.messages.bulk_deleted')
+            : trans('actions::actions.messages.deleted');
+    }
+    return trans('actions::actions.messages.action_completed');
+};
+
 // Handle click
 const handleClick = async (e: Event) => {
-    // Show modal if requires confirmation OR has a form schema
+    // Show modal if requires confirmation OR has a form/infolist schema
     // This takes priority over direct navigation
-    if (props.requiresConfirmation || (props.modalFormSchema && props.modalFormSchema.length > 0)) {
+    const hasModalContent = props.requiresConfirmation ||
+        (props.modalFormSchema && props.modalFormSchema.length > 0) ||
+        (props.modalInfolistSchema && props.modalInfolistSchema.length > 0);
+
+    if (hasModalContent) {
         e.preventDefault();
         e.stopPropagation();
+
+        // Initialize form data with external data if provided (for edit/view actions)
+        if (props.externalFormData) {
+            formData.value = { ...props.externalFormData };
+        } else {
+            formData.value = {};
+        }
+
         showModal.value = true;
         return;
     }
@@ -475,17 +589,103 @@ const executeAction = async () => {
         isLoading.value = true;
 
         try {
-            // Collect form data from parent form if getFormData is available
+            // Collect form data - prioritize modal form data (user edits), then getFormData, then other sources
             let actionData = formData.value;
 
-            if (props.getFormData) {
+            // If we have a modal form with user edits, use formData (it contains merged data + user changes)
+            // Only use getFormData/externalFormData if formData is empty
+            if (props.getFormData && (!formData.value || Object.keys(formData.value).length === 0)) {
                 actionData = props.getFormData();
-            } else if (props.externalFormData) {
-                actionData = props.externalFormData;
-            } else if (props.data) {
+            } else if (props.data && (!formData.value || Object.keys(formData.value).length === 0)) {
                 actionData = props.data;
             }
+            // Note: formData.value already includes externalFormData merged in on modal open
 
+            // For record actions, ensure record context is always included
+            // This is needed for edit/delete actions to know which record to operate on
+            if (props.data && props.data.record) {
+                actionData = {
+                    ...actionData,
+                    record: props.data.record,
+                    resourceName: props.data.resourceName,
+                    model: props.data.model,
+                };
+            }
+
+            // If action has a token (closure action), send it with data wrapped
+            // Otherwise (URL action), just send the form data directly
+            const requestData = props.actionToken
+                ? { token: props.actionToken, data: actionData }
+                : actionData;
+
+            // Use AJAX (fetch) if useAjax is true - this avoids page reload
+            if (props.useAjax && !isClosureAction) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const method = (props.method || 'POST').toUpperCase();
+
+                const response = await fetch(executionUrl, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: method !== 'GET' ? JSON.stringify(requestData) : undefined,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showModal.value = false;
+                    formData.value = {};
+
+                    // Show success notification based on method/action type
+                    const successMessage = result.message || getSuccessMessage(method);
+                    if (successMessage) {
+                        notify({
+                            title: trans('actions::actions.states.success'),
+                            body: successMessage,
+                            type: 'success',
+                        });
+                    }
+
+                    // If this is a bulk action and should deselect records after completion
+                    if (props.isBulkAction && props.deselectRecordsAfterCompletion === true) {
+                        window.dispatchEvent(new CustomEvent('bulk-action-completed'));
+                    }
+
+                    // Emit action-complete event for parent components
+                    emit('action-complete', result);
+                } else {
+                    // Handle validation errors
+                    if (result.errors && typeof result.errors === 'object') {
+                        const errorMessages = Object.values(result.errors).flat();
+                        if (errorMessages.length > 0) {
+                            const firstError = Array.isArray(errorMessages[0])
+                                ? errorMessages[0][0]
+                                : errorMessages[0];
+
+                            notify({
+                                title: translatedErrorTitle.value,
+                                body: String(firstError),
+                                type: 'error',
+                            });
+                        }
+                    } else if (result.message) {
+                        notify({
+                            title: translatedErrorTitle.value,
+                            body: result.message,
+                            type: 'error',
+                        });
+                    }
+                }
+
+                isLoading.value = false;
+                return;
+            }
+
+            // Use Inertia router (default behavior)
             const requestOptions: any = {
                 // Preserve state on errors (validation errors should keep form data)
                 // But on success, use the prop value
@@ -525,13 +725,16 @@ const executeAction = async () => {
                         window.dispatchEvent(new CustomEvent('bulk-action-completed'));
                     }
 
+                    // Emit action-complete event for parent components
+                    emit('action-complete', page?.props?.actionUpdatedData);
+
                     // If the action updated form data (via Set), merge it back into parent form
                     // Only check for updated data if preserveState is true (otherwise page.props might not exist)
                     if (props.preserveState && page?.props) {
                         const updatedData = page.props.actionUpdatedData as Record<string, any> | null;
                         if (updatedData && Object.keys(updatedData).length > 0) {
                             // Emit event to update parent form data
-                            // This will be handled by FormRenderer
+                            // This will be handled by Form
                             window.dispatchEvent(new CustomEvent('action-updated-data', {
                                 detail: updatedData
                             }));
@@ -551,7 +754,7 @@ const executeAction = async () => {
                                 : errorMessages[0];
 
                             notify({
-                                title: 'Error',
+                                title: translatedErrorTitle.value,
                                 body: String(firstError),
                                 type: 'error',
                             });
@@ -562,15 +765,6 @@ const executeAction = async () => {
                     isLoading.value = false;
                 },
             };
-
-            // Don't use 'only' parameter - we need a full page reload to get session flash data
-            // The session flash data is only available on full page loads, not partial Inertia requests
-
-            // If action has a token (closure action), send it with data wrapped
-            // Otherwise (URL action), just send the form data directly
-            const requestData = props.actionToken
-                ? { token: props.actionToken, data: actionData }
-                : actionData;
 
             // Use the appropriate HTTP method
             const method = (props.method || 'POST').toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';

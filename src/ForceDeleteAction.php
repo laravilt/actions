@@ -2,36 +2,45 @@
 
 namespace Laravilt\Actions;
 
-class DeleteAction extends Action
+class ForceDeleteAction extends Action
 {
     public static function make(?string $name = null): static
     {
-        $action = parent::make($name ?? 'delete');
+        $action = parent::make($name ?? 'force-delete');
 
         return $action
-            ->label(__('actions::actions.buttons.delete'))
+            ->label(__('actions::actions.buttons.force_delete'))
             ->icon('Trash2')
             ->color('destructive')
-            ->tooltip(__('actions::actions.tooltips.delete'))
+            ->tooltip(__('actions::actions.tooltips.force_delete'))
             ->requiresConfirmation()
-            ->preserveState(false); // Full page reload to follow redirect
+            ->modalHeading(__('actions::actions.modal.force_delete_title'))
+            ->modalDescription(__('actions::actions.modal.force_delete_description'))
+            ->preserveState(false);
     }
 
     /**
-     * Convert to array, including visibility logic.
-     * Regular delete action should be hidden for soft-deleted records.
+     * Check if the action should be visible for the given record.
+     * Only visible for soft-deleted records.
      */
-    public function toArray(): array
+    public function isVisibleForRecord(mixed $record): bool
     {
-        $data = parent::toArray();
-        $data['hiddenWhenTrashed'] = true;
+        // Check if the record is soft deleted (has deleted_at)
+        if (is_object($record) && method_exists($record, 'trashed')) {
+            return $record->trashed();
+        }
 
-        return $data;
+        // For array data, check deleted_at
+        if (is_array($record)) {
+            return !empty($record['deleted_at']);
+        }
+
+        return false;
     }
 
     /**
      * Auto-configure the action based on record context.
-     * Sets the action closure to delete the record and redirect to list page.
+     * Sets the action closure to force delete the record and redirect to list page.
      */
     public function resolveRecordContext(mixed $recordId): static
     {
@@ -46,14 +55,15 @@ class DeleteAction extends Action
                 if ($resource) {
                     $modelClass = $resource::getModel();
 
-                    // Auto-configure action to delete record and redirect
+                    // Auto-configure action to force delete record and redirect
                     $this->action(function () use ($recordId, $resource, $modelClass) {
-                        $record = $modelClass::findOrFail($recordId);
-                        $record->delete();
+                        // Include soft deleted records in the query
+                        $record = $modelClass::withTrashed()->findOrFail($recordId);
+                        $record->forceDelete();
 
                         \Laravilt\Notifications\Notification::success()
                             ->title(__('notifications::notifications.success'))
-                            ->body(__('notifications::notifications.record_deleted'))
+                            ->body(__('actions::actions.messages.force_deleted'))
                             ->send();
 
                         // Get the list page name (could be 'list' or 'index' for simple resources)
@@ -64,12 +74,23 @@ class DeleteAction extends Action
                     });
 
                     // Clear component context to make this a standalone action
-                    // This ensures the action generates a standalone token instead of a component-based token
                     $this->clearComponent();
                 }
             }
         }
 
         return $this;
+    }
+
+    /**
+     * Convert to array, including visibility logic.
+     */
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        $data['visibleWhenTrashed'] = true;
+        $data['hiddenWhenNotTrashed'] = true;
+
+        return $data;
     }
 }

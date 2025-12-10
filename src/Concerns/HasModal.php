@@ -6,6 +6,8 @@ trait HasModal
 {
     protected bool $requiresConfirmation = false;
 
+    protected bool $hasModal = false;
+
     protected ?string $modalHeading = null;
 
     protected ?string $modalDescription = null;
@@ -20,11 +22,28 @@ trait HasModal
 
     protected array $modalFormSchema = [];
 
+    protected array $modalInfolistSchema = [];
+
     public function requiresConfirmation(bool $condition = true): static
     {
         $this->requiresConfirmation = $condition;
 
         return $this;
+    }
+
+    /**
+     * Enable modal display without confirmation UI (for forms/infolists).
+     */
+    public function modal(bool $condition = true): static
+    {
+        $this->hasModal = $condition;
+
+        return $this;
+    }
+
+    public function hasModal(): bool
+    {
+        return $this->hasModal || $this->requiresConfirmation || !empty($this->modalFormSchema) || !empty($this->modalInfolistSchema);
     }
 
     public function modalHeading(?string $heading): static
@@ -77,6 +96,16 @@ trait HasModal
     }
 
     /**
+     * Set the modal infolist schema for view-only modals.
+     */
+    public function modalInfolistSchema(array $schema): static
+    {
+        $this->modalInfolistSchema = $schema;
+
+        return $this;
+    }
+
+    /**
      * Set the modal form schema (alias for modalFormSchema).
      */
     public function schema(array $schema): static
@@ -100,7 +129,9 @@ trait HasModal
         if ($this->requiresConfirmation) {
             $label = method_exists($this, 'getLabel') ? $this->getLabel() : null;
 
-            return $label ? "Confirm {$label}" : 'Confirm Action';
+            return $label
+                ? __('actions::actions.modal.confirm_action', ['action' => $label])
+                : __('actions::actions.modal.confirm_title');
         }
 
         return null;
@@ -115,9 +146,9 @@ trait HasModal
 
         // If requires confirmation but no description, generate default based on action label
         if ($this->requiresConfirmation) {
-            $label = method_exists($this, 'getLabel') ? $this->getLabel() : 'this action';
+            $label = method_exists($this, 'getLabel') ? $this->getLabel() : __('actions::actions.modal.this_action');
 
-            return "Are you sure you want to {$label}?";
+            return __('actions::actions.modal.confirm_action_description', ['action' => $label]);
         }
 
         return null;
@@ -173,6 +204,10 @@ trait HasModal
 
     protected bool $slideOver = false;
 
+    protected ?string $modalWidth = null;
+
+    protected bool $isViewOnly = false;
+
     public function slideOver(bool $condition = true): static
     {
         $this->slideOver = $condition;
@@ -214,5 +249,34 @@ trait HasModal
     public function getModalFormSchema(): array
     {
         return $this->modalFormSchema;
+    }
+
+    public function getModalInfolistSchema(): array
+    {
+        return $this->modalInfolistSchema;
+    }
+
+    public function modalWidth(?string $width): static
+    {
+        $this->modalWidth = $width;
+
+        return $this;
+    }
+
+    public function getModalWidth(): ?string
+    {
+        return $this->modalWidth;
+    }
+
+    public function isViewOnly(bool $condition = true): static
+    {
+        $this->isViewOnly = $condition;
+
+        return $this;
+    }
+
+    public function getIsViewOnly(): bool
+    {
+        return $this->isViewOnly;
     }
 }

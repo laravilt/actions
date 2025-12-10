@@ -1,16 +1,78 @@
 <?php
 
 return [
-    /*
-    |--------------------------------------------------------------------------
-    | Actions Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines are used by the Actions plugin.
-    | You are free to modify these language lines according to your
-    | application's requirements.
-    |
-    */
+    // Button Labels
+    'buttons' => [
+        'submit' => 'Submit',
+        'cancel' => 'Cancel',
+        'confirm' => 'Confirm',
+        'close' => 'Close',
+        'save' => 'Save',
+        'create' => 'Create',
+        'update' => 'Update',
+        'delete' => 'Delete',
+        'edit' => 'Edit',
+        'view' => 'View',
+        'force_delete' => 'Force Delete',
+        'restore' => 'Restore',
+    ],
 
-    // Add your translation messages here
+    // Modal
+    'modal' => [
+        'confirm_title' => 'Confirm Action',
+        'confirm_description' => 'Are you sure you want to perform this action?',
+        'confirm_action' => 'Confirm :action',
+        'confirm_action_description' => 'Are you sure you want to :action?',
+        'this_action' => 'perform this action',
+        'delete_title' => 'Delete Confirmation',
+        'delete_description' => 'Are you sure you want to delete this item? This action cannot be undone.',
+        'force_delete_title' => 'Permanently Delete',
+        'force_delete_description' => 'Are you sure you want to permanently delete this record? This action cannot be undone.',
+        'restore_title' => 'Restore Record',
+        'restore_description' => 'Are you sure you want to restore this record?',
+        'bulk_force_delete_title' => 'Permanently Delete Selected',
+        'bulk_force_delete_description' => 'Are you sure you want to permanently delete the selected records? This action cannot be undone.',
+        'bulk_restore_title' => 'Restore Selected',
+        'bulk_restore_description' => 'Are you sure you want to restore the selected records?',
+    ],
+
+    // States
+    'states' => [
+        'loading' => 'Loading...',
+        'processing' => 'Processing...',
+        'success' => 'Success!',
+        'error' => 'Error!',
+    ],
+
+    // Confirmation descriptions
+    'confirm_delete_description' => 'Are you sure you want to delete this item? This action cannot be undone.',
+    'confirm_bulk_delete_description' => 'Are you sure you want to delete the selected items? This action cannot be undone.',
+
+    // Messages
+    'messages' => [
+        'action_completed' => 'Action completed successfully',
+        'action_failed' => 'Action failed. Please try again.',
+        'unauthorized' => 'You are not authorized to perform this action.',
+        'created' => 'Record created successfully',
+        'updated' => 'Record updated successfully',
+        'deleted' => 'Record deleted successfully',
+        'bulk_deleted' => 'Records deleted successfully',
+        'force_deleted' => 'Record permanently deleted',
+        'restored' => 'Record restored successfully',
+        'bulk_force_deleted' => ':count records permanently deleted',
+        'bulk_restored' => ':count records restored',
+        'no_records_selected' => 'No records selected',
+        'saved' => 'Changes saved successfully',
+    ],
+
+    // Tooltips
+    'tooltips' => [
+        'edit' => 'Edit this item',
+        'delete' => 'Delete this item',
+        'view' => 'View details',
+        'download' => 'Download',
+        'copy' => 'Copy to clipboard',
+        'force_delete' => 'Permanently delete this item',
+        'restore' => 'Restore this item',
+    ],
 ];

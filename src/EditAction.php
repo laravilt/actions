@@ -9,10 +9,23 @@ class EditAction extends Action
         $action = parent::make($name ?? 'edit');
 
         return $action
-            ->label('Edit')
+            ->label(__('actions::actions.buttons.edit'))
             ->icon('Pencil')
             ->color('warning')
+            ->tooltip(__('actions::actions.tooltips.edit'))
             ->method('GET'); // Navigation action - use GET
+    }
+
+    /**
+     * Convert to array, including visibility logic.
+     * Edit action should be hidden for soft-deleted records.
+     */
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        $data['hiddenWhenTrashed'] = true;
+
+        return $data;
     }
 
     /**

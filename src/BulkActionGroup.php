@@ -50,6 +50,13 @@ class BulkActionGroup implements Arrayable
         return $this->actions;
     }
 
+    public function setActions(array $actions): static
+    {
+        $this->actions = $actions;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [

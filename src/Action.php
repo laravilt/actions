@@ -48,6 +48,8 @@ class Action implements Arrayable
 
     protected ?string $cachedActionToken = null;
 
+    protected ?string $stableId = null;
+
     protected bool $preserveState = true;
 
     protected bool $preserveScroll = true;
@@ -129,6 +131,26 @@ class Action implements Arrayable
         $this->preserveScroll = $preserve;
 
         return $this;
+    }
+
+    /**
+     * Set a stable ID for the action.
+     * This ensures the action token remains consistent across requests.
+     * Use for actions that need to persist (e.g., in ManageRecords).
+     */
+    public function stableId(string $id): static
+    {
+        $this->stableId = $id;
+
+        return $this;
+    }
+
+    /**
+     * Get the stable ID if set.
+     */
+    public function getStableId(): ?string
+    {
+        return $this->stableId;
     }
 
     public function method(string $method): static
@@ -362,13 +384,31 @@ class Action implements Arrayable
      */
     protected function getStandaloneActionToken(): string
     {
-        // Return cached token if already generated
+        // If we have a stable ID, use it for consistent tokens across requests
+        if ($this->stableId !== null) {
+            $actionId = 'action_'.$this->stableId;
+
+            // Always update the closure in session (in case it was modified)
+            $serializableClosure = new \Laravel\SerializableClosure\SerializableClosure($this->action);
+            session()->put("action.{$actionId}", $serializableClosure);
+
+            // Set the action URL to the execute route
+            $this->actionUrl = route('actions.execute');
+
+            // Return encrypted token with stable action_id
+            return \Illuminate\Support\Facades\Crypt::encrypt([
+                'action_id' => $actionId,
+                'panel' => $this->panelId,
+            ]);
+        }
+
+        // Return cached token if already generated (for non-stable actions)
         if ($this->cachedActionToken !== null) {
             return $this->cachedActionToken;
         }
 
         // Generate unique action ID using name and a unique identifier
-        // This prevents conflicts when multiple actions with the same name exist (e.g., delete actions for different records)
+        // This is used for one-time actions that don't need persistence
         $actionId = 'action_'.$this->getName().'_'.uniqid();
 
         // Wrap closure in SerializableClosure to allow session storage
@@ -380,12 +420,29 @@ class Action implements Arrayable
         // Set the action URL to the execute route
         $this->actionUrl = route('actions.execute');
 
-        // Cache and return encrypted token with action_id
+        // Cache and return encrypted token with action_id and panel
         $this->cachedActionToken = \Illuminate\Support\Facades\Crypt::encrypt([
             'action_id' => $actionId,
+            'panel' => $this->panelId,
         ]);
 
         return $this->cachedActionToken;
+    }
+
+    /**
+     * Serialize schema items to array, handling both objects with toLaraviltProps() and plain arrays.
+     */
+    protected function serializeSchema(array $schema): array
+    {
+        return array_map(function ($item) {
+            if (is_object($item) && method_exists($item, 'toLaraviltProps')) {
+                return $item->toLaraviltProps();
+            }
+            if (is_array($item)) {
+                return $item;
+            }
+            return $item;
+        }, $schema);
     }
 
     public function execute(mixed $record = null, array $data = []): mixed
@@ -434,13 +491,18 @@ class Action implements Arrayable
             'url' => $this->getUrl(),
             'openUrlInNewTab' => $this->shouldOpenUrlInNewTab(),
             'requiresConfirmation' => $this->getRequiresConfirmation(),
+            'hasModal' => $this->hasModal(),
             'modalHeading' => $this->getModalHeading(),
             'modalDescription' => $this->getModalDescription(),
             'modalSubmitActionLabel' => $this->getModalSubmitActionLabel(),
             'modalCancelActionLabel' => $this->getModalCancelActionLabel(),
             'modalIcon' => $this->getModalIcon(),
             'modalIconColor' => $this->getModalIconColor(),
-            'modalFormSchema' => collect($this->getModalFormSchema())->map->toLaraviltProps()->toArray(),
+            'modalFormSchema' => $this->serializeSchema($this->getModalFormSchema()),
+            'modalFormController' => $this->componentClass, // For reactive fields in modal forms
+            'modalInfolistSchema' => $this->serializeSchema($this->getModalInfolistSchema()),
+            'modalWidth' => $this->getModalWidth(),
+            'isViewOnly' => $this->getIsViewOnly(),
             'requiresPassword' => $this->getRequiresPassword(),
             'modalContent' => $this->getModalContent(),
             'slideOver' => $this->isSlideOver(),

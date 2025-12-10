@@ -9,9 +9,10 @@ class ViewAction extends Action
         $action = parent::make($name ?? 'view');
 
         return $action
-            ->label('View')
+            ->label(__('actions::actions.buttons.view'))
             ->icon('Eye')
             ->color('secondary')
+            ->tooltip(__('actions::actions.tooltips.view'))
             ->method('GET'); // Navigation action - use GET
     }
 

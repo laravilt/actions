@@ -4,22 +4,22 @@ namespace Laravilt\Actions;
 
 use Laravilt\Notifications\Notification;
 
-class DeleteBulkAction extends BulkAction
+class RestoreBulkAction extends BulkAction
 {
     protected ?string $model = null;
 
     public static function make(?string $name = null): static
     {
-        $action = parent::make($name ?? 'delete');
+        $action = parent::make($name ?? 'restore');
 
         return $action
-            ->label(__('tables::tables.actions.bulk_delete'))
-            ->icon('Trash2')
-            ->color('destructive')
+            ->label(__('actions::actions.buttons.restore'))
+            ->icon('RotateCcw')
+            ->color('success')
             ->requiresConfirmation()
             ->preserveState(false)
-            ->modalHeading(__('actions::actions.modal.delete_title'))
-            ->modalDescription(__('actions::actions.confirm_bulk_delete_description'))
+            ->modalHeading(__('actions::actions.modal.bulk_restore_title'))
+            ->modalDescription(__('actions::actions.modal.bulk_restore_description'))
             ->deselectRecordsAfterCompletion();
     }
 
@@ -31,10 +31,9 @@ class DeleteBulkAction extends BulkAction
         $this->model = $model;
 
         // Capture the model class in a local variable to avoid capturing $this
-        // This prevents serialization issues with SerializableClosure
         $modelClass = $model;
 
-        // Set up the default delete action
+        // Set up the default restore action
         $this->action(function (array $ids) use ($modelClass) {
             if (empty($ids)) {
                 Notification::warning()
@@ -45,11 +44,12 @@ class DeleteBulkAction extends BulkAction
                 return;
             }
 
-            $deleted = $modelClass::whereIn('id', $ids)->delete();
+            // Restore soft deleted records
+            $restored = $modelClass::withTrashed()->whereIn('id', $ids)->restore();
 
             Notification::success()
                 ->title(__('actions::actions.states.success'))
-                ->body(__('tables::tables.messages.bulk_deleted', ['count' => $deleted]))
+                ->body(__('actions::actions.messages.bulk_restored', ['count' => $restored]))
                 ->send();
         });
 
@@ -62,5 +62,17 @@ class DeleteBulkAction extends BulkAction
     public function getModel(): ?string
     {
         return $this->model;
+    }
+
+    /**
+     * Convert to array, including visibility logic.
+     */
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        $data['visibleWhenTrashed'] = true;
+        $data['hiddenWhenNotTrashed'] = true;
+
+        return $data;
     }
 }

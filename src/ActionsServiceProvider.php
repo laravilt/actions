@@ -27,7 +27,7 @@ class ActionsServiceProvider extends ServiceProvider
     {
 
         // Load translations
-        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'actions');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'actions');
 
         // Load web routes
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');

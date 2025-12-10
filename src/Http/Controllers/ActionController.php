@@ -17,6 +17,16 @@ class ActionController extends Controller
             // Decrypt the action token
             $payload = Crypt::decrypt($request->input('token'));
 
+            // Set the current panel from payload before executing any action
+            // This ensures getPanel() returns the correct panel during action execution
+            $panelId = $payload['panel'] ?? null;
+            if ($panelId && class_exists(\Laravilt\Panel\PanelRegistry::class)) {
+                $registry = app(\Laravilt\Panel\PanelRegistry::class);
+                if ($registry->has($panelId)) {
+                    $registry->setCurrent($panelId);
+                }
+            }
+
             // Check if this is a standalone action (has action_id)
             if (isset($payload['action_id'])) {
                 return $this->executeStandaloneAction($payload, $request);
@@ -26,7 +36,6 @@ class ActionController extends Controller
             $componentClass = $payload['component'];
             $componentId = $payload['id'];
             $actionName = $payload['action'];
-            $panelId = $payload['panel'] ?? null;
 
             // Get the component instance
             $component = $this->resolveComponent($componentClass, $componentId, $panelId);
@@ -68,8 +77,6 @@ class ActionController extends Controller
 
             // If the result is a redirect response, return it directly for Inertia to handle
             if ($result instanceof \Illuminate\Http\RedirectResponse) {
-                \Log::info('ActionController: Returning redirect to: '.$result->getTargetUrl());
-
                 return $result;
             }
 
@@ -101,10 +108,6 @@ class ActionController extends Controller
      */
     protected function executeStandaloneAction(array $payload, Request $request)
     {
-        \Log::info('ActionController::executeStandaloneAction called', [
-            'session_id' => session()->getId(),
-        ]);
-
         $actionId = $payload['action_id'];
 
         // Get the serializable closure from session
@@ -266,26 +269,7 @@ class ActionController extends Controller
         session()->flash('_laravilt_notifications', $notifications);
 
         // Create redirect response
-        $redirect = redirect()->back(303);
-
-        // Add notifications to a cookie for frontend to read
-        // Cookies persist across redirects, unlike response headers
-        // The cookie is NOT encrypted (excluded in middleware) so JS can read it
-        if (! empty($notifications)) {
-            $redirect->cookie(
-                'laravilt_notifications',
-                base64_encode(json_encode($notifications)),
-                1, // 1 minute expiry (short-lived)
-                '/',
-                null,
-                false, // secure
-                false, // httpOnly - must be false so JS can read it
-                false, // raw
-                'Lax'
-            );
-        }
-
-        return $redirect;
+        return redirect()->back(303);
     }
 
     /**
