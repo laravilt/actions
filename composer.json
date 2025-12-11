@@ -1,7 +1,7 @@
 {
     "name": "laravilt/actions",
     "description": "Complete action system with modal support, authorization, and Inertia.js integration. Build interactive UI components with buttons, links, and icon buttons. Includes confirmation modals, custom forms, and secure token-based execution.",
-    "version": "1.0.4",
+    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": [
