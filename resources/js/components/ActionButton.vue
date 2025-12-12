@@ -214,6 +214,7 @@ interface ActionProps {
     isBulkAction?: boolean;
     deselectRecordsAfterCompletion?: boolean;
     type?: 'button' | 'submit' | 'reset';
+    isSubmit?: boolean; // Whether this action should validate the form before executing
     preserveState?: boolean;
     preserveScroll?: boolean;
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -575,8 +576,10 @@ const executeAction = async () => {
         }
     }
 
-    // Validate parent form before executing action (if validateForm is available from parent)
-    if (validateForm && !validateForm()) {
+    // Validate parent form before executing action ONLY for submit-type actions
+    // Cancel buttons (type='button', isSubmit=false) should NOT trigger form validation
+    const shouldValidateForm = props.isSubmit === true || props.type === 'submit';
+    if (shouldValidateForm && validateForm && !validateForm()) {
         return;
     }
 
