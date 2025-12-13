@@ -28,6 +28,7 @@ class ForceDeleteAction extends Action
                 if (is_array($record)) {
                     return empty($record['deleted_at']);
                 }
+
                 return true;
             });
     }
