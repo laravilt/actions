@@ -13,19 +13,20 @@ class EditAction extends Action
             ->icon('Pencil')
             ->color('warning')
             ->tooltip(__('actions::actions.tooltips.edit'))
-            ->method('GET'); // Navigation action - use GET
-    }
-
-    /**
-     * Convert to array, including visibility logic.
-     * Edit action should be hidden for soft-deleted records.
-     */
-    public function toArray(): array
-    {
-        $data = parent::toArray();
-        $data['hiddenWhenTrashed'] = true;
-
-        return $data;
+            ->method('GET') // Navigation action - use GET
+            ->hidden(function ($record) {
+                // Hide for trashed records - can't edit a deleted record
+                if ($record === null) {
+                    return false;
+                }
+                if (is_object($record) && method_exists($record, 'trashed')) {
+                    return $record->trashed();
+                }
+                if (is_array($record)) {
+                    return ! empty($record['deleted_at']);
+                }
+                return false;
+            });
     }
 
     /**

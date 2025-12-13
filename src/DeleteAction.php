@@ -14,19 +14,20 @@ class DeleteAction extends Action
             ->color('destructive')
             ->tooltip(__('actions::actions.tooltips.delete'))
             ->requiresConfirmation()
-            ->preserveState(false); // Full page reload to follow redirect
-    }
-
-    /**
-     * Convert to array, including visibility logic.
-     * Regular delete action should be hidden for soft-deleted records.
-     */
-    public function toArray(): array
-    {
-        $data = parent::toArray();
-        $data['hiddenWhenTrashed'] = true;
-
-        return $data;
+            ->preserveState(false) // Full page reload to follow redirect
+            ->hidden(function ($record) {
+                // Hide for trashed records - can't soft-delete an already deleted record
+                if ($record === null) {
+                    return false;
+                }
+                if (is_object($record) && method_exists($record, 'trashed')) {
+                    return $record->trashed();
+                }
+                if (is_array($record)) {
+                    return ! empty($record['deleted_at']);
+                }
+                return false;
+            });
     }
 
     /**

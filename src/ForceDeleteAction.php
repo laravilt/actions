@@ -16,26 +16,20 @@ class ForceDeleteAction extends Action
             ->requiresConfirmation()
             ->modalHeading(__('actions::actions.modal.force_delete_title'))
             ->modalDescription(__('actions::actions.modal.force_delete_description'))
-            ->preserveState(false);
-    }
-
-    /**
-     * Check if the action should be visible for the given record.
-     * Only visible for soft-deleted records.
-     */
-    public function isVisibleForRecord(mixed $record): bool
-    {
-        // Check if the record is soft deleted (has deleted_at)
-        if (is_object($record) && method_exists($record, 'trashed')) {
-            return $record->trashed();
-        }
-
-        // For array data, check deleted_at
-        if (is_array($record)) {
-            return ! empty($record['deleted_at']);
-        }
-
-        return false;
+            ->preserveState(false)
+            ->hidden(function ($record) {
+                // Only show for trashed records - hidden when NOT trashed
+                if ($record === null) {
+                    return true;
+                }
+                if (is_object($record) && method_exists($record, 'trashed')) {
+                    return ! $record->trashed();
+                }
+                if (is_array($record)) {
+                    return empty($record['deleted_at']);
+                }
+                return true;
+            });
     }
 
     /**
@@ -80,17 +74,5 @@ class ForceDeleteAction extends Action
         }
 
         return $this;
-    }
-
-    /**
-     * Convert to array, including visibility logic.
-     */
-    public function toArray(): array
-    {
-        $data = parent::toArray();
-        $data['visibleWhenTrashed'] = true;
-        $data['hiddenWhenNotTrashed'] = true;
-
-        return $data;
     }
 }
