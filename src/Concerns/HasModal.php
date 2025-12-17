@@ -24,6 +24,10 @@ trait HasModal
 
     protected array $modalInfolistSchema = [];
 
+    protected ?\Closure $fillFormUsing = null;
+
+    protected array $defaultFormData = [];
+
     public function requiresConfirmation(bool $condition = true): static
     {
         $this->requiresConfirmation = $condition;
@@ -254,6 +258,70 @@ trait HasModal
     public function getModalInfolistSchema(): array
     {
         return $this->modalInfolistSchema;
+    }
+
+    /**
+     * Set a closure to fill the modal form with data based on the record.
+     *
+     * @param  \Closure  $callback  A closure that receives the record and returns an array of form data
+     */
+    public function fillForm(\Closure $callback): static
+    {
+        $this->fillFormUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Get the closure used to fill the form.
+     */
+    public function getFillFormUsing(): ?\Closure
+    {
+        return $this->fillFormUsing;
+    }
+
+    /**
+     * Fill the form data for a specific record.
+     *
+     * @param  mixed  $record  The record to fill form data from
+     * @return array The form data
+     */
+    public function getFilledFormData(mixed $record = null): array
+    {
+        if ($this->fillFormUsing === null) {
+            return $this->defaultFormData;
+        }
+
+        // Only evaluate fillForm closure if we have a record
+        // This prevents errors when serializing actions without record context
+        if ($record === null) {
+            return $this->defaultFormData;
+        }
+
+        try {
+            return call_user_func($this->fillFormUsing, $record) ?? [];
+        } catch (\Throwable $e) {
+            // If fillForm fails, return default data
+            return $this->defaultFormData;
+        }
+    }
+
+    /**
+     * Check if this action has a fillForm closure defined.
+     */
+    public function hasFillForm(): bool
+    {
+        return $this->fillFormUsing !== null;
+    }
+
+    /**
+     * Set default form data (without record context).
+     */
+    public function defaultFormData(array $data): static
+    {
+        $this->defaultFormData = $data;
+
+        return $this;
     }
 
     public function modalWidth(?string $width): static

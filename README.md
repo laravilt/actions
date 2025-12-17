@@ -20,6 +20,43 @@ Complete action system with modal support, authorization, and Inertia.js integra
 - 🔗 **URL Handling** - External URLs, internal actions, new tab support
 - ⚡ **Inertia Integration** - Seamless Vue 3 integration
 
+## Action Types
+
+| Type | Description |
+|------|-------------|
+| `Action` | Standard action button |
+| `BulkAction` | Action for multiple selected records |
+| `LinkAction` | Navigation link style |
+| `IconAction` | Icon-only button |
+
+## Colors
+
+```php
+->color('primary')  // Blue
+->color('secondary') // Gray
+->color('success')   // Green
+->color('danger')    // Red
+->color('warning')   // Yellow
+->color('info')      // Light blue
+```
+
+## Modal Types
+
+```php
+// Confirmation modal
+->requiresConfirmation()
+->modalHeading('Delete User')
+->modalDescription('Are you sure?')
+
+// Form modal
+->schema([
+    TextInput::make('reason')->required(),
+])
+
+// Slide-over
+->slideOver()
+```
+
 ## Installation
 
 ```bash

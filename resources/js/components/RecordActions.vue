@@ -77,7 +77,8 @@ const processedActions = computed(() => {
             resourceName: props.resourceName,
             executionRoute: props.executionRoute,
             // Pass record data for edit/view modals to pre-fill forms
-            externalFormData: action.externalFormData || props.record,
+            // First check action-specific modalFormData (from fillForm), then externalFormData, then full record
+            externalFormData: action.modalFormData || action.externalFormData || props.record,
         }));
 });
 

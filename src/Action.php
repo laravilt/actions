@@ -364,10 +364,13 @@ class Action implements Arrayable
      */
     public function getActionToken(): string
     {
+        // Auto-detect panel ID if not set
+        $panelId = $this->panelId ?? $this->detectCurrentPanelId();
+
         // If action has a closure, always use standalone token (stored in session)
         // This ensures the closure is executed directly, not through component resolution
         if ($this->action) {
-            return $this->getStandaloneActionToken();
+            return $this->getStandaloneActionToken($panelId);
         }
 
         // Component-based actions (no closure) use encrypted component metadata
@@ -375,14 +378,33 @@ class Action implements Arrayable
             'component' => $this->componentClass,
             'id' => $this->componentId,
             'action' => $this->getName(),
-            'panel' => $this->panelId,
+            'panel' => $panelId,
         ]);
+    }
+
+    /**
+     * Detect the current panel ID from the panel registry.
+     */
+    protected function detectCurrentPanelId(): ?string
+    {
+        if (! class_exists(\Laravilt\Panel\PanelRegistry::class)) {
+            return null;
+        }
+
+        try {
+            $registry = app(\Laravilt\Panel\PanelRegistry::class);
+            $panel = $registry->getCurrent();
+
+            return $panel?->getId();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
      * Generate token for standalone actions (without component context).
      */
-    protected function getStandaloneActionToken(): string
+    protected function getStandaloneActionToken(?string $panelId = null): string
     {
         // If we have a stable ID, use it for consistent tokens across requests
         if ($this->stableId !== null) {
@@ -398,7 +420,7 @@ class Action implements Arrayable
             // Return encrypted token with stable action_id
             return \Illuminate\Support\Facades\Crypt::encrypt([
                 'action_id' => $actionId,
-                'panel' => $this->panelId,
+                'panel' => $panelId,
             ]);
         }
 
@@ -423,7 +445,7 @@ class Action implements Arrayable
         // Cache and return encrypted token with action_id and panel
         $this->cachedActionToken = \Illuminate\Support\Facades\Crypt::encrypt([
             'action_id' => $actionId,
-            'panel' => $this->panelId,
+            'panel' => $panelId,
         ]);
 
         return $this->cachedActionToken;
@@ -501,6 +523,7 @@ class Action implements Arrayable
             'modalIconColor' => $this->getModalIconColor(),
             'modalFormSchema' => $this->serializeSchema($this->getModalFormSchema()),
             'modalFormController' => $this->componentClass, // For reactive fields in modal forms
+            'modalFormData' => $this->getFilledFormData($record), // Pre-filled form data
             'modalInfolistSchema' => $this->serializeSchema($this->getModalInfolistSchema()),
             'modalWidth' => $this->getModalWidth(),
             'isViewOnly' => $this->getIsViewOnly(),

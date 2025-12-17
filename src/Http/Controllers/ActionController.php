@@ -27,6 +27,9 @@ class ActionController extends Controller
                 }
             }
 
+            // Restore the tenant context from session for panel with tenancy
+            $this->restoreTenantContext($panelId);
+
             // Check if this is a standalone action (has action_id)
             if (isset($payload['action_id'])) {
                 return $this->executeStandaloneAction($payload, $request);
@@ -75,8 +78,9 @@ class ActionController extends Controller
 
             $result = $action->execute($record, $data);
 
-            // If the result is a redirect response, return it directly for Inertia to handle
-            if ($result instanceof \Illuminate\Http\RedirectResponse) {
+            // If the result is a redirect response or Inertia location response, return it directly
+            if ($result instanceof \Illuminate\Http\RedirectResponse ||
+                $result instanceof \Symfony\Component\HttpFoundation\Response) {
                 return $result;
             }
 
@@ -245,8 +249,10 @@ class ActionController extends Controller
             $notifications = array_merge($notifications, $notificationsArray);
         }
 
-        // If the result is a redirect response, attach notifications and return it
-        if ($result instanceof \Illuminate\Http\RedirectResponse) {
+        // If the result is a redirect response or Inertia location response, attach notifications and return it
+        if ($result instanceof \Illuminate\Http\RedirectResponse ||
+            $result instanceof \Inertia\Response ||
+            ($result instanceof \Symfony\Component\HttpFoundation\Response && $result->getStatusCode() === 409)) {
             // Flash notifications for the redirect destination
             if (! empty($notifications)) {
                 session()->flash('_laravilt_notifications', $notifications);
@@ -308,5 +314,58 @@ class ActionController extends Controller
     {
         // This would be implemented based on your resource architecture
         return null;
+    }
+
+    /**
+     * Restore tenant context from session for action execution.
+     */
+    protected function restoreTenantContext(?string $panelId): void
+    {
+        if (! $panelId) {
+            return;
+        }
+
+        // Check if panel package and tenant manager are available
+        if (! class_exists(\Laravilt\Panel\PanelRegistry::class)) {
+            return;
+        }
+
+        $registry = app(\Laravilt\Panel\PanelRegistry::class);
+        $panel = $registry->get($panelId);
+
+        if (! $panel || ! $panel->hasTenancy()) {
+            return;
+        }
+
+        // Get tenant ID from session
+        $tenantId = session('laravilt.tenant_id');
+
+        if (! $tenantId) {
+            return;
+        }
+
+        // Get the tenant model class and find the tenant
+        $tenantModel = $panel->getTenantModel();
+
+        if (! $tenantModel || ! class_exists($tenantModel)) {
+            return;
+        }
+
+        $tenant = $tenantModel::find($tenantId);
+
+        if (! $tenant) {
+            return;
+        }
+
+        // Set the tenant in the TenantManager
+        if (class_exists(\Laravilt\Panel\Facades\Laravilt::class)) {
+            \Laravilt\Panel\Facades\Laravilt::setTenant($tenant);
+        }
+
+        // For multi-database tenancy, initialize the database connection
+        if ($panel->isMultiDatabaseTenancy() && class_exists(\Laravilt\Panel\Tenancy\MultiDatabaseManager::class)) {
+            $multiDbManager = app(\Laravilt\Panel\Tenancy\MultiDatabaseManager::class);
+            $multiDbManager->initialize($tenant);
+        }
     }
 }
