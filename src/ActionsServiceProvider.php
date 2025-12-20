@@ -47,6 +47,8 @@ class ActionsServiceProvider extends ServiceProvider
             $this->commands([
                 Commands\InstallActionsCommand::class,
                 Commands\MakeActionCommand::class,
+                Commands\MakeExporterCommand::class,
+                Commands\MakeImporterCommand::class,
             ]);
         }
     }

@@ -55,6 +55,7 @@ return [
     // Replicate Action
     'replicate' => [
         'label' => 'تكرار',
+        'tooltip' => 'إنشاء نسخة من هذا السجل',
         'modal' => [
             'heading' => 'تكرار السجل',
             'description' => 'هل أنت متأكد أنك تريد إنشاء نسخة من هذا السجل؟',

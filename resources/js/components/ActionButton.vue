@@ -163,7 +163,7 @@ import ErrorProvider from '@laravilt/forms/components/ErrorProvider.vue';
 import InfoList from '@laravilt/infolists/components/InfoList.vue';
 import * as LucideIcons from 'lucide-vue-next';
 import { useNotification } from '@laravilt/notifications/composables/useNotification';
-import { useLocalization } from '@/composables/useLocalization';
+import { useLocalization } from '@laravilt/support/composables/useLocalization';
 
 // Get Inertia page for accessing validation errors
 const page = usePage();

@@ -1,0 +1,48 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ model }};
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+
+class {{ class }} implements FromQuery, WithHeadings, WithMapping
+{
+    use Exportable;
+
+    /**
+     * Return the query for the export.
+     */
+    public function query()
+    {
+        return {{ modelClass }}::query();
+    }
+
+    /**
+     * Define the headings for the export.
+     */
+    public function headings(): array
+    {
+        return [
+            'ID',
+            'Name',
+            'Created At',
+            'Updated At',
+        ];
+    }
+
+    /**
+     * Map the data for each row.
+     */
+    public function map($row): array
+    {
+        return [
+            $row->id,
+            $row->name,
+            $row->created_at?->format('Y-m-d H:i:s'),
+            $row->updated_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+}

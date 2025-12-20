@@ -2,6 +2,7 @@
 
 namespace Laravilt\Actions\Tests;
 
+use Maatwebsite\Excel\ExcelServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -16,6 +17,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
+            ExcelServiceProvider::class,
             \Laravilt\Actions\ActionsServiceProvider::class,
         ];
     }

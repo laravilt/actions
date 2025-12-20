@@ -374,27 +374,30 @@ class ActionController extends Controller
      */
     public function export(Request $request)
     {
+        // Validate token is present (outside try-catch to avoid catching abort exceptions)
+        $token = $request->input('token');
+
+        if (! $token) {
+            abort(400, 'Export token is required.');
+        }
+
         try {
-            // Decrypt the token to get export configuration
-            $token = $request->input('token');
-
-            if (! $token) {
-                abort(400, 'Export token is required.');
-            }
-
             $config = Crypt::decrypt($token);
-            $exporterClass = $config['exporter'] ?? null;
-            $fileName = $config['fileName'] ?? 'export.xlsx';
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            abort(400, 'Invalid export token.');
+        }
 
-            if (! $exporterClass || ! class_exists($exporterClass)) {
-                abort(404, 'Exporter class not found.');
-            }
+        $exporterClass = $config['exporter'] ?? null;
+        $fileName = $config['fileName'] ?? 'export.xlsx';
 
+        if (! $exporterClass || ! class_exists($exporterClass)) {
+            abort(404, 'Exporter class not found.');
+        }
+
+        try {
             $exporter = new $exporterClass;
 
             return \Maatwebsite\Excel\Facades\Excel::download($exporter, $fileName);
-        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
-            abort(400, 'Invalid export token.');
         } catch (\Exception $e) {
             abort(500, 'Export failed: '.$e->getMessage());
         }

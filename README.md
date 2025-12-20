@@ -19,6 +19,8 @@ Complete action system with modal support, authorization, and Inertia.js integra
 - 🎯 **Flexible Configuration** - Colors, icons, sizes, tooltips
 - 🔗 **URL Handling** - External URLs, internal actions, new tab support
 - ⚡ **Inertia Integration** - Seamless Vue 3 integration
+- 📤 **Export/Import** - Excel/CSV export and import with Laravel Excel
+- 🔄 **Soft Delete Support** - Built-in restore and force delete actions
 
 ## Action Types
 
@@ -26,8 +28,18 @@ Complete action system with modal support, authorization, and Inertia.js integra
 |------|-------------|
 | `Action` | Standard action button |
 | `BulkAction` | Action for multiple selected records |
-| `LinkAction` | Navigation link style |
-| `IconAction` | Icon-only button |
+| `ViewAction` | Navigate to view page |
+| `EditAction` | Navigate to edit page |
+| `DeleteAction` | Soft delete record |
+| `CreateAction` | Navigate to create page |
+| `ReplicateAction` | Duplicate a record |
+| `RestoreAction` | Restore soft-deleted record |
+| `ForceDeleteAction` | Permanently delete record |
+| `ExportAction` | Export data to Excel/CSV |
+| `ImportAction` | Import data from Excel/CSV |
+| `DeleteBulkAction` | Bulk soft delete |
+| `RestoreBulkAction` | Bulk restore |
+| `ForceDeleteBulkAction` | Bulk permanent delete |
 
 ## Colors
 
@@ -82,11 +94,61 @@ $action = Action::make('delete')
     });
 ```
 
-## Generator Command
+## Export & Import
+
+```php
+use Laravilt\Actions\ExportAction;
+use Laravilt\Actions\ImportAction;
+
+// Export with custom exporter class
+ExportAction::make()
+    ->exporter(UserExporter::class)
+    ->fileName('users.xlsx');
+
+// Import with custom importer class
+ImportAction::make()
+    ->importer(UserImporter::class);
+```
+
+## Soft Delete Actions
+
+```php
+use Laravilt\Actions\DeleteAction;
+use Laravilt\Actions\RestoreAction;
+use Laravilt\Actions\ForceDeleteAction;
+
+// Auto-hidden for trashed records
+DeleteAction::make();
+
+// Auto-visible only for trashed records
+RestoreAction::make();
+ForceDeleteAction::make();
+```
+
+## Replicate Action
+
+```php
+use Laravilt\Actions\ReplicateAction;
+
+ReplicateAction::make()
+    ->excludeAttributes(['slug', 'published_at'])
+    ->beforeReplicaSaved(fn ($replica) => $replica->name .= ' (Copy)')
+    ->afterReplicaSaved(fn ($replica) => /* post-save logic */);
+```
+
+## Generator Commands
 
 ```bash
 # Generate an action class
 php artisan make:action ExportUserAction
+
+# Generate an exporter class for ExportAction
+php artisan laravilt:exporter UserExporter
+php artisan laravilt:exporter CustomerExporter --model=Customer
+
+# Generate an importer class for ImportAction
+php artisan laravilt:importer UserImporter
+php artisan laravilt:importer CustomerImporter --model=Customer
 ```
 
 ## Documentation

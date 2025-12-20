@@ -55,6 +55,7 @@ return [
     // Replicate Action
     'replicate' => [
         'label' => 'Replicate',
+        'tooltip' => 'Duplicate this record',
         'modal' => [
             'heading' => 'Replicate Record',
             'description' => 'Are you sure you want to create a copy of this record?',

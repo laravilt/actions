@@ -21,8 +21,9 @@ class ReplicateAction extends Action
     {
         $this->name ??= 'replicate';
         $this->label(__('actions::actions.replicate.label'));
-        $this->icon('copy');
+        $this->icon('Copy');
         $this->color('gray');
+        $this->tooltip(__('actions::actions.replicate.tooltip'));
         $this->requiresConfirmation();
         $this->modalHeading(__('actions::actions.replicate.modal.heading'));
         $this->modalDescription(__('actions::actions.replicate.modal.description'));

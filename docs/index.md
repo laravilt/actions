@@ -7,8 +7,13 @@ Complete action system with modal support, authorization, and Inertia.js integra
 1. [Getting Started](#getting-started)
 2. [Architecture](#architecture)
 3. [Action Generation](#action-generation)
-4. [API Reference](#api-reference)
-5. [MCP Server Integration](mcp-server.md)
+4. [Built-in Actions](#built-in-actions)
+5. [Export & Import](#export--import)
+6. [Soft Delete Actions](#soft-delete-actions)
+7. [Replicate Action](#replicate-action)
+8. [Bulk Actions](#bulk-actions)
+9. [API Reference](#api-reference)
+10. [MCP Server Integration](mcp-server.md)
 
 ## Overview
 
@@ -21,6 +26,9 @@ Laravilt Actions provides a comprehensive action system for building interactive
 - **URL Integration**: Support for external URLs and internal actions
 - **Token-based Execution**: Secure action execution with encrypted tokens
 - **Inertia.js Integration**: Seamless frontend integration with Vue 3
+- **Export/Import**: Excel and CSV export/import powered by Laravel Excel
+- **Soft Delete Support**: Built-in restore and force delete actions
+- **Record Replication**: Duplicate records with customizable attributes
 
 ## Quick Start
 
@@ -146,6 +154,8 @@ Table::make()
 ### Authorization
 
 ```php
+use Laravilt\Actions\Action;
+
 Action::make('edit')
     ->label('Edit')
     ->icon('pencil')
@@ -160,12 +170,13 @@ Action::make('edit')
 ```php
 use Laravilt\Forms\Components\TextInput;
 use Laravilt\Forms\Components\Textarea;
+use Laravilt\Actions\Action;
 
 Action::make('edit')
     ->label('Edit')
     ->icon('pencil')
     ->modalHeading('Edit User')
-    ->modalFormSchema([
+    ->schema([
         TextInput::make('name')
             ->label('Name')
             ->required(),
@@ -226,9 +237,11 @@ Action::make('delete')
 - `lg` - Large
 - `xl` - Extra large
 
-## Generator Command
+## Generator Commands
 
-Generate action classes with the artisan command:
+Generate action, exporter, and importer classes with artisan commands:
+
+### Generate Action Class
 
 ```bash
 # Basic action
@@ -261,6 +274,103 @@ class ExportUserAction
             ->action(function ($record, $data) {
                 // Your action logic here
             });
+    }
+}
+```
+
+### Generate Exporter Class
+
+```bash
+# Basic exporter (auto-detects model from name)
+php artisan laravilt:exporter UserExporter
+
+# With explicit model
+php artisan laravilt:exporter CustomerExporter --model=Customer
+
+# Force overwrite
+php artisan laravilt:exporter UserExporter --force
+```
+
+Generated exporter structure:
+
+```php
+<?php
+
+namespace App\Exports;
+
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+
+class UserExporter implements FromQuery, WithHeadings, WithMapping
+{
+    use Exportable;
+
+    public function query()
+    {
+        return User::query();
+    }
+
+    public function headings(): array
+    {
+        return ['ID', 'Name', 'Created At', 'Updated At'];
+    }
+
+    public function map($row): array
+    {
+        return [
+            $row->id,
+            $row->name,
+            $row->created_at?->format('Y-m-d H:i:s'),
+            $row->updated_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+}
+```
+
+### Generate Importer Class
+
+```bash
+# Basic importer (auto-detects model from name)
+php artisan laravilt:importer UserImporter
+
+# With explicit model
+php artisan laravilt:importer CustomerImporter --model=Customer
+
+# Force overwrite
+php artisan laravilt:importer UserImporter --force
+```
+
+Generated importer structure:
+
+```php
+<?php
+
+namespace App\Imports;
+
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+
+class UserImporter implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
+{
+    public function model(array $row)
+    {
+        return new User([
+            'name' => $row['name'],
+            // Add more fields as needed
+        ]);
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+        ];
     }
 }
 ```
@@ -354,24 +464,346 @@ const handleAction = async (action, record) => {
 6. **Tooltips**: Add tooltips for icon-only buttons
 7. **Form Validation**: Add validation to modal form schemas
 
-## Examples
+## Built-in Actions
 
-### Bulk Actions
+Laravilt provides several pre-configured action types for common operations:
+
+### ViewAction
+
+Navigate to the view page for a record:
 
 ```php
-Action::make('bulkDelete')
-    ->label('Delete Selected')
-    ->icon('trash-2')
-    ->color('danger')
-    ->requiresConfirmation()
-    ->modalHeading('Delete Multiple Users')
-    ->modalDescription('Are you sure you want to delete the selected users?')
-    ->action(function ($records) {
-        foreach ($records as $record) {
-            $record->delete();
-        }
+use Laravilt\Actions\ViewAction;
+
+ViewAction::make()
+    ->authorize(fn ($record) => auth()->user()->can('view', $record));
+```
+
+### EditAction
+
+Navigate to the edit page for a record:
+
+```php
+use Laravilt\Actions\EditAction;
+
+EditAction::make()
+    ->authorize(fn ($record) => auth()->user()->can('update', $record));
+```
+
+### CreateAction
+
+Navigate to the create page:
+
+```php
+use Laravilt\Actions\CreateAction;
+
+CreateAction::make()
+    ->authorize(fn () => auth()->user()->can('create', User::class));
+```
+
+## Export & Import
+
+Laravilt Actions includes powerful export and import functionality powered by Laravel Excel.
+
+### ExportAction
+
+Export data to Excel, CSV, or other formats:
+
+```php
+use Laravilt\Actions\ExportAction;
+
+// Basic export with exporter class
+ExportAction::make()
+    ->exporter(UserExporter::class)
+    ->fileName('users.xlsx');
+
+// Export as CSV
+ExportAction::make()
+    ->exporter(UserExporter::class)
+    ->csv()
+    ->fileName('users.csv');
+
+// Queue export for large datasets
+ExportAction::make()
+    ->exporter(UserExporter::class)
+    ->queue()
+    ->disk('exports');
+```
+
+#### ExportAction Methods
+
+| Method | Description |
+|--------|-------------|
+| `exporter(string $class)` | Set the exporter class (must implement Laravel Excel export interface) |
+| `fileName(string $name)` | Set the download filename |
+| `xlsx()` | Export as XLSX format (default) |
+| `csv()` | Export as CSV format |
+| `writerType(string $type)` | Set custom writer type |
+| `queue(bool $queue = true)` | Queue the export for background processing |
+| `disk(string $disk)` | Set storage disk for queued exports |
+| `modifyQueryUsing(Closure $callback)` | Modify the export query |
+| `columns(array $columns)` | Set columns to export |
+| `headings(array $headings)` | Set column headings |
+
+#### Creating an Exporter Class
+
+```php
+<?php
+
+namespace App\Exports;
+
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+
+class UserExporter implements FromQuery, WithHeadings, WithMapping
+{
+    public function query()
+    {
+        return User::query();
+    }
+
+    public function headings(): array
+    {
+        return ['ID', 'Name', 'Email', 'Created At'];
+    }
+
+    public function map($user): array
+    {
+        return [
+            $user->id,
+            $user->name,
+            $user->email,
+            $user->created_at->format('Y-m-d H:i:s'),
+        ];
+    }
+}
+```
+
+### ImportAction
+
+Import data from Excel or CSV files:
+
+```php
+use Laravilt\Actions\ImportAction;
+
+// Basic import with importer class
+ImportAction::make()
+    ->importer(UserImporter::class);
+
+// Import from CSV
+ImportAction::make()
+    ->importer(UserImporter::class)
+    ->csv();
+
+// Queue import for large files
+ImportAction::make()
+    ->importer(UserImporter::class)
+    ->queue();
+
+// Custom accepted file types
+ImportAction::make()
+    ->importer(UserImporter::class)
+    ->acceptedFileTypes([
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/csv',
+    ]);
+```
+
+#### ImportAction Methods
+
+| Method | Description |
+|--------|-------------|
+| `importer(string $class)` | Set the importer class (must implement Laravel Excel import interface) |
+| `xlsx()` | Import from XLSX format (default) |
+| `csv()` | Import from CSV format |
+| `readerType(string $type)` | Set custom reader type |
+| `queue(bool $queue = true)` | Queue the import for background processing |
+| `disk(string $disk)` | Set storage disk for reading files |
+| `chunkSize(int $size)` | Set chunk size for large imports |
+| `beforeImport(Closure $callback)` | Callback before import starts |
+| `afterImport(Closure $callback)` | Callback after import completes |
+| `acceptedFileTypes(array $types)` | Set accepted MIME types for upload |
+
+#### Creating an Importer Class
+
+```php
+<?php
+
+namespace App\Imports;
+
+use App\Models\User;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+
+class UserImporter implements ToModel, WithHeadingRow
+{
+    public function model(array $row)
+    {
+        return new User([
+            'name' => $row['name'],
+            'email' => $row['email'],
+            'password' => bcrypt('password'),
+        ]);
+    }
+}
+```
+
+## Soft Delete Actions
+
+Laravilt provides specialized actions for handling soft-deleted records.
+
+### DeleteAction
+
+Soft delete a record. Automatically hidden for already-trashed records:
+
+```php
+use Laravilt\Actions\DeleteAction;
+
+DeleteAction::make()
+    ->authorize(fn ($record) => auth()->user()->can('delete', $record));
+```
+
+### RestoreAction
+
+Restore a soft-deleted record. Automatically visible only for trashed records:
+
+```php
+use Laravilt\Actions\RestoreAction;
+
+RestoreAction::make()
+    ->authorize(fn ($record) => auth()->user()->can('restore', $record));
+```
+
+### ForceDeleteAction
+
+Permanently delete a record. Automatically visible only for trashed records:
+
+```php
+use Laravilt\Actions\ForceDeleteAction;
+
+ForceDeleteAction::make()
+    ->authorize(fn ($record) => auth()->user()->can('forceDelete', $record));
+```
+
+### Soft Delete Visibility
+
+The soft delete actions automatically handle visibility based on the record's trashed state:
+
+| Action | Visible When | Hidden When |
+|--------|--------------|-------------|
+| `DeleteAction` | Record is not trashed | Record is trashed |
+| `RestoreAction` | Record is trashed | Record is not trashed |
+| `ForceDeleteAction` | Record is trashed | Record is not trashed |
+
+## Replicate Action
+
+Duplicate records with customizable attribute exclusions and callbacks.
+
+### Basic Usage
+
+```php
+use Laravilt\Actions\ReplicateAction;
+
+ReplicateAction::make();
+```
+
+### Exclude Attributes
+
+Exclude specific attributes from being copied:
+
+```php
+ReplicateAction::make()
+    ->excludeAttributes(['slug', 'published_at', 'views_count']);
+```
+
+### Before/After Callbacks
+
+Customize the replica before or after saving:
+
+```php
+ReplicateAction::make()
+    ->excludeAttributes(['slug'])
+    ->beforeReplicaSaved(function ($replica, $original) {
+        $replica->name = $original->name . ' (Copy)';
+        $replica->slug = Str::slug($replica->name);
+        $replica->status = 'draft';
+    })
+    ->afterReplicaSaved(function ($replica, $original) {
+        // Copy relationships
+        $replica->tags()->sync($original->tags->pluck('id'));
+
+        // Log the replication
+        activity()->log("Replicated record {$original->id} to {$replica->id}");
     });
 ```
+
+#### ReplicateAction Methods
+
+| Method | Description |
+|--------|-------------|
+| `excludeAttributes(array $attributes)` | Attributes to exclude from replication |
+| `beforeReplicaSaved(Closure $callback)` | Callback before replica is saved (receives $replica, $original) |
+| `afterReplicaSaved(Closure $callback)` | Callback after replica is saved (receives $replica, $original) |
+| `successRedirectUrl(Closure $url)` | Custom redirect URL after replication |
+
+## Bulk Actions
+
+Actions that operate on multiple selected records.
+
+### BulkAction
+
+Base class for bulk operations:
+
+```php
+use Laravilt\Actions\BulkAction;
+
+BulkAction::make('activate')
+    ->label('Activate Selected')
+    ->icon('check-circle')
+    ->color('success')
+    ->requiresConfirmation()
+    ->action(function ($records) {
+        $records->each->activate();
+    })
+    ->deselectRecordsAfterCompletion();
+```
+
+### DeleteBulkAction
+
+Bulk soft delete records:
+
+```php
+use Laravilt\Actions\DeleteBulkAction;
+
+DeleteBulkAction::make()
+    ->authorize(fn () => auth()->user()->can('deleteAny', User::class));
+```
+
+### RestoreBulkAction
+
+Bulk restore soft-deleted records:
+
+```php
+use Laravilt\Actions\RestoreBulkAction;
+
+RestoreBulkAction::make()
+    ->authorize(fn () => auth()->user()->can('restoreAny', User::class));
+```
+
+### ForceDeleteBulkAction
+
+Bulk permanently delete records:
+
+```php
+use Laravilt\Actions\ForceDeleteBulkAction;
+
+ForceDeleteBulkAction::make()
+    ->authorize(fn () => auth()->user()->can('forceDeleteAny', User::class));
+```
+
+## Examples
 
 ### Conditional Actions
 
