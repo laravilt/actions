@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravilt\Actions;
 
 use Closure;
-use Illuminate\Http\UploadedFile;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportAction extends Action
