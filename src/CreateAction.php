@@ -10,13 +10,11 @@ class CreateAction extends Action
 
     protected bool $isConfigured = false;
 
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'create');
-
-        return $action
-            ->icon('Plus')
-            ->color('primary');
+        $this->name ??= 'create';
+        $this->icon('Plus');
+        $this->color('primary');
     }
 
     /**

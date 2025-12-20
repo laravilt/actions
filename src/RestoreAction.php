@@ -4,33 +4,31 @@ namespace Laravilt\Actions;
 
 class RestoreAction extends Action
 {
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'restore');
-
-        return $action
-            ->label(__('actions::actions.buttons.restore'))
-            ->icon('RotateCcw')
-            ->color('success')
-            ->tooltip(__('actions::actions.tooltips.restore'))
-            ->requiresConfirmation()
-            ->modalHeading(__('actions::actions.modal.restore_title'))
-            ->modalDescription(__('actions::actions.modal.restore_description'))
-            ->preserveState(false)
-            ->hidden(function ($record) {
-                // Only show for trashed records - hidden when NOT trashed
-                if ($record === null) {
-                    return true;
-                }
-                if (is_object($record) && method_exists($record, 'trashed')) {
-                    return ! $record->trashed();
-                }
-                if (is_array($record)) {
-                    return empty($record['deleted_at']);
-                }
-
+        $this->name ??= 'restore';
+        $this->label(__('actions::actions.buttons.restore'));
+        $this->icon('RotateCcw');
+        $this->color('success');
+        $this->tooltip(__('actions::actions.tooltips.restore'));
+        $this->requiresConfirmation();
+        $this->modalHeading(__('actions::actions.modal.restore_title'));
+        $this->modalDescription(__('actions::actions.modal.restore_description'));
+        $this->preserveState(false);
+        $this->hidden(function ($record) {
+            // Only show for trashed records - hidden when NOT trashed
+            if ($record === null) {
                 return true;
-            });
+            }
+            if (is_object($record) && method_exists($record, 'trashed')) {
+                return ! $record->trashed();
+            }
+            if (is_array($record)) {
+                return empty($record['deleted_at']);
+            }
+
+            return true;
+        });
     }
 
     /**

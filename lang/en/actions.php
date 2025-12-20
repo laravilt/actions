@@ -15,6 +15,55 @@ return [
         'view' => 'View',
         'force_delete' => 'Force Delete',
         'restore' => 'Restore',
+        'export' => 'Export',
+        'import' => 'Import',
+        'replicate' => 'Replicate',
+    ],
+
+    // Export Action
+    'export' => [
+        'label' => 'Export',
+        'modal' => [
+            'heading' => 'Export Data',
+            'description' => 'Select the format and options for your export.',
+            'submit' => 'Export',
+        ],
+        'messages' => [
+            'success' => 'Export completed successfully.',
+            'failed' => 'Export failed. Please try again.',
+        ],
+    ],
+
+    // Import Action
+    'import' => [
+        'label' => 'Import',
+        'modal' => [
+            'heading' => 'Import Data',
+            'description' => 'Upload a file to import data. Supported formats: XLSX, CSV.',
+            'submit' => 'Import',
+        ],
+        'fields' => [
+            'file' => 'File',
+        ],
+        'messages' => [
+            'success' => 'Import completed successfully.',
+            'failed' => 'Import failed. Please check your file and try again.',
+            'validation_errors' => 'Some rows could not be imported due to validation errors.',
+        ],
+    ],
+
+    // Replicate Action
+    'replicate' => [
+        'label' => 'Replicate',
+        'modal' => [
+            'heading' => 'Replicate Record',
+            'description' => 'Are you sure you want to create a copy of this record?',
+            'submit' => 'Replicate',
+        ],
+        'messages' => [
+            'success' => 'Record replicated successfully.',
+            'failed' => 'Failed to replicate record. Please try again.',
+        ],
     ],
 
     // Modal

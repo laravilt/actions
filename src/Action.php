@@ -63,6 +63,16 @@ class Action implements Arrayable
     final public function __construct(?string $name = null)
     {
         $this->name = $name;
+        $this->setUp();
+    }
+
+    /**
+     * Configure the action.
+     * Override this method in subclasses to set up defaults.
+     */
+    protected function setUp(): void
+    {
+        //
     }
 
     public static function make(?string $name = null): static
@@ -178,7 +188,7 @@ class Action implements Arrayable
     /**
      * Specify which form this action should submit.
      */
-    public function form(?string $form): static
+    public function submitForm(?string $form): static
     {
         $this->form = $form;
 
@@ -196,7 +206,7 @@ class Action implements Arrayable
     /**
      * Get the form this action submits.
      */
-    public function getForm(): ?string
+    public function getSubmitForm(): ?string
     {
         return $this->form;
     }
@@ -545,7 +555,7 @@ class Action implements Arrayable
             'preserveScroll' => $this->preserveScroll,
             'method' => $this->getMethod(),
             'isSubmit' => $this->isSubmit(),
-            'form' => $this->getForm(),
+            'submitForm' => $this->getSubmitForm(),
         ];
 
         // Filter out null/empty values to reduce payload size and avoid undefined behavior

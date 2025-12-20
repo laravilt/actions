@@ -8,19 +8,19 @@ class DeleteBulkAction extends BulkAction
 {
     protected ?string $model = null;
 
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'delete');
+        parent::setUp();
 
-        return $action
-            ->label(__('tables::tables.actions.bulk_delete'))
-            ->icon('Trash2')
-            ->color('destructive')
-            ->requiresConfirmation()
-            ->preserveState(false)
-            ->modalHeading(__('actions::actions.modal.delete_title'))
-            ->modalDescription(__('actions::actions.confirm_bulk_delete_description'))
-            ->deselectRecordsAfterCompletion();
+        $this->name ??= 'delete';
+        $this->label(__('tables::tables.actions.bulk_delete'));
+        $this->icon('Trash2');
+        $this->color('destructive');
+        $this->requiresConfirmation();
+        $this->preserveState(false);
+        $this->modalHeading(__('actions::actions.modal.delete_title'));
+        $this->modalDescription(__('actions::actions.confirm_bulk_delete_description'));
+        $this->deselectRecordsAfterCompletion();
     }
 
     /**

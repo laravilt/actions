@@ -4,30 +4,28 @@ namespace Laravilt\Actions;
 
 class EditAction extends Action
 {
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'edit');
-
-        return $action
-            ->label(__('actions::actions.buttons.edit'))
-            ->icon('Pencil')
-            ->color('warning')
-            ->tooltip(__('actions::actions.tooltips.edit'))
-            ->method('GET') // Navigation action - use GET
-            ->hidden(function ($record) {
-                // Hide for trashed records - can't edit a deleted record
-                if ($record === null) {
-                    return false;
-                }
-                if (is_object($record) && method_exists($record, 'trashed')) {
-                    return $record->trashed();
-                }
-                if (is_array($record)) {
-                    return ! empty($record['deleted_at']);
-                }
-
+        $this->name ??= 'edit';
+        $this->label(__('actions::actions.buttons.edit'));
+        $this->icon('Pencil');
+        $this->color('warning');
+        $this->tooltip(__('actions::actions.tooltips.edit'));
+        $this->method('GET'); // Navigation action - use GET
+        $this->hidden(function ($record) {
+            // Hide for trashed records - can't edit a deleted record
+            if ($record === null) {
                 return false;
-            });
+            }
+            if (is_object($record) && method_exists($record, 'trashed')) {
+                return $record->trashed();
+            }
+            if (is_array($record)) {
+                return ! empty($record['deleted_at']);
+            }
+
+            return false;
+        });
     }
 
     /**

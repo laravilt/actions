@@ -8,19 +8,19 @@ class RestoreBulkAction extends BulkAction
 {
     protected ?string $model = null;
 
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'restore');
+        parent::setUp();
 
-        return $action
-            ->label(__('actions::actions.buttons.restore'))
-            ->icon('RotateCcw')
-            ->color('success')
-            ->requiresConfirmation()
-            ->preserveState(false)
-            ->modalHeading(__('actions::actions.modal.bulk_restore_title'))
-            ->modalDescription(__('actions::actions.modal.bulk_restore_description'))
-            ->deselectRecordsAfterCompletion();
+        $this->name ??= 'restore';
+        $this->label(__('actions::actions.buttons.restore'));
+        $this->icon('RotateCcw');
+        $this->color('success');
+        $this->requiresConfirmation();
+        $this->preserveState(false);
+        $this->modalHeading(__('actions::actions.modal.bulk_restore_title'));
+        $this->modalDescription(__('actions::actions.modal.bulk_restore_description'));
+        $this->deselectRecordsAfterCompletion();
     }
 
     /**

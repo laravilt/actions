@@ -10,17 +10,10 @@ class BulkAction extends Action
 
     protected bool $deselectRecordsAfterCompletion = false;
 
-    /**
-     * Create a new bulk action instance.
-     */
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $instance = parent::make($name);
-
         // Set default modal properties for bulk actions
-        $instance->requiresConfirmation();
-
-        return $instance;
+        $this->requiresConfirmation();
     }
 
     /**

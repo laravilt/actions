@@ -368,4 +368,105 @@ class ActionController extends Controller
             $multiDbManager->initialize($tenant);
         }
     }
+
+    /**
+     * Handle export action.
+     */
+    public function export(Request $request)
+    {
+        try {
+            // Decrypt the token to get export configuration
+            $token = $request->input('token');
+
+            if (! $token) {
+                abort(400, 'Export token is required.');
+            }
+
+            $config = Crypt::decrypt($token);
+            $exporterClass = $config['exporter'] ?? null;
+            $fileName = $config['fileName'] ?? 'export.xlsx';
+
+            if (! $exporterClass || ! class_exists($exporterClass)) {
+                abort(404, 'Exporter class not found.');
+            }
+
+            $exporter = new $exporterClass;
+
+            return \Maatwebsite\Excel\Facades\Excel::download($exporter, $fileName);
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            abort(400, 'Invalid export token.');
+        } catch (\Exception $e) {
+            abort(500, 'Export failed: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Handle import action.
+     */
+    public function import(Request $request)
+    {
+        try {
+            $importerClass = $request->input('importer');
+
+            if (! $importerClass || ! class_exists($importerClass)) {
+                return back()->withErrors(['import' => 'Importer class not found.']);
+            }
+
+            // Check for uploaded file first (direct upload)
+            $file = $request->file('file');
+            $filePath = null;
+
+            // If no uploaded file, check for file path (from FilePond pre-upload)
+            if (! $file) {
+                $filePath = $request->input('file');
+
+                if ($filePath && is_string($filePath)) {
+                    // FilePond stores files - check public disk first (default for FileUpload),
+                    // then fall back to default disk
+                    $disksToCheck = ['public', config('filesystems.default')];
+                    $disksToCheck = array_unique($disksToCheck);
+
+                    foreach ($disksToCheck as $disk) {
+                        if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($filePath)) {
+                            // Get the full path to the file
+                            $file = \Illuminate\Support\Facades\Storage::disk($disk)->path($filePath);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (! $file) {
+                return back()->withErrors(['import' => 'No file provided for import.']);
+            }
+
+            $importer = new $importerClass;
+
+            \Maatwebsite\Excel\Facades\Excel::import($importer, $file);
+
+            // Clean up temp file if it was from FilePond
+            if ($filePath && is_string($filePath)) {
+                $disksToCheck = ['public', config('filesystems.default')];
+                $disksToCheck = array_unique($disksToCheck);
+
+                foreach ($disksToCheck as $disk) {
+                    if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($filePath)) {
+                        \Illuminate\Support\Facades\Storage::disk($disk)->delete($filePath);
+                        break;
+                    }
+                }
+            }
+
+            \Laravilt\Notifications\Notification::success()
+                ->title(__('notifications::notifications.success'))
+                ->body(__('actions::actions.import.messages.success'))
+                ->send();
+
+            return redirect()->back(303);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            return back()->withErrors(['import' => 'Import failed: '.$e->getMessage()]);
+        }
+    }
 }

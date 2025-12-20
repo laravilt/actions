@@ -4,31 +4,29 @@ namespace Laravilt\Actions;
 
 class DeleteAction extends Action
 {
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'delete');
-
-        return $action
-            ->label(__('actions::actions.buttons.delete'))
-            ->icon('Trash2')
-            ->color('destructive')
-            ->tooltip(__('actions::actions.tooltips.delete'))
-            ->requiresConfirmation()
-            ->preserveState(false) // Full page reload to follow redirect
-            ->hidden(function ($record) {
-                // Hide for trashed records - can't soft-delete an already deleted record
-                if ($record === null) {
-                    return false;
-                }
-                if (is_object($record) && method_exists($record, 'trashed')) {
-                    return $record->trashed();
-                }
-                if (is_array($record)) {
-                    return ! empty($record['deleted_at']);
-                }
-
+        $this->name ??= 'delete';
+        $this->label(__('actions::actions.buttons.delete'));
+        $this->icon('Trash2');
+        $this->color('destructive');
+        $this->tooltip(__('actions::actions.tooltips.delete'));
+        $this->requiresConfirmation();
+        $this->preserveState(false); // Full page reload to follow redirect
+        $this->hidden(function ($record) {
+            // Hide for trashed records - can't soft-delete an already deleted record
+            if ($record === null) {
                 return false;
-            });
+            }
+            if (is_object($record) && method_exists($record, 'trashed')) {
+                return $record->trashed();
+            }
+            if (is_array($record)) {
+                return ! empty($record['deleted_at']);
+            }
+
+            return false;
+        });
     }
 
     /**

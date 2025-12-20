@@ -8,19 +8,19 @@ class ForceDeleteBulkAction extends BulkAction
 {
     protected ?string $model = null;
 
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'force-delete');
+        parent::setUp();
 
-        return $action
-            ->label(__('actions::actions.buttons.force_delete'))
-            ->icon('Trash2')
-            ->color('destructive')
-            ->requiresConfirmation()
-            ->preserveState(false)
-            ->modalHeading(__('actions::actions.modal.bulk_force_delete_title'))
-            ->modalDescription(__('actions::actions.modal.bulk_force_delete_description'))
-            ->deselectRecordsAfterCompletion();
+        $this->name ??= 'force-delete';
+        $this->label(__('actions::actions.buttons.force_delete'));
+        $this->icon('Trash2');
+        $this->color('destructive');
+        $this->requiresConfirmation();
+        $this->preserveState(false);
+        $this->modalHeading(__('actions::actions.modal.bulk_force_delete_title'));
+        $this->modalDescription(__('actions::actions.modal.bulk_force_delete_description'));
+        $this->deselectRecordsAfterCompletion();
     }
 
     /**

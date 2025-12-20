@@ -4,16 +4,14 @@ namespace Laravilt\Actions;
 
 class ViewAction extends Action
 {
-    public static function make(?string $name = null): static
+    protected function setUp(): void
     {
-        $action = parent::make($name ?? 'view');
-
-        return $action
-            ->label(__('actions::actions.buttons.view'))
-            ->icon('Eye')
-            ->color('secondary')
-            ->tooltip(__('actions::actions.tooltips.view'))
-            ->method('GET'); // Navigation action - use GET
+        $this->name ??= 'view';
+        $this->label(__('actions::actions.buttons.view'));
+        $this->icon('Eye');
+        $this->color('secondary');
+        $this->tooltip(__('actions::actions.tooltips.view'));
+        $this->method('GET'); // Navigation action - use GET
     }
 
     /**

@@ -233,9 +233,6 @@ const props = withDefaults(defineProps<ActionProps>(), {
     preserveState: true,
     preserveScroll: true,
     method: 'POST',
-    modalCancelActionLabel: 'Cancel',
-    modalSubmitActionLabel: 'Confirm',
-    errorNotificationTitle: 'Error',
     useAjax: false,
     isViewOnly: false,
 });
@@ -311,11 +308,8 @@ const fillInfolistValues = (schema: any[], data: Record<string, any>): any[] => 
     });
 };
 
-// Determine component type (Button or Link)
+// Determine component type (always Button for consistent styling)
 const componentType = computed(() => {
-    if (props.url && !props.hasAction) {
-        return props.openUrlInNewTab ? 'a' : Button;
-    }
     return Button;
 });
 
@@ -530,11 +524,16 @@ const handleClick = async (e: Event) => {
         return;
     }
 
-    // If it's a URL action without backend action AND not a special method, navigate using Inertia
+    // If it's a URL action without backend action AND not a special method, navigate
     // (DELETE, PUT, PATCH need to go through executeAction)
     if (props.url && !props.hasAction && (!props.method || props.method === 'GET')) {
         e.preventDefault();
-        router.visit(props.url);
+        // Open in new tab if specified (e.g., for file downloads)
+        if (props.openUrlInNewTab) {
+            window.open(props.url, '_blank');
+        } else {
+            router.visit(props.url);
+        }
         return;
     }
 
@@ -592,17 +591,21 @@ const executeAction = async () => {
         isLoading.value = true;
 
         try {
-            // Collect form data - prioritize modal form data (user edits), then getFormData, then other sources
-            let actionData = formData.value;
+            // Collect form data - merge props.data with modal form data
+            // props.data contains action-specific data (like importer class)
+            // formData.value contains user input from modal form (like uploaded file)
+            let actionData = {
+                ...(props.data || {}),
+                ...formData.value,
+            };
 
-            // If we have a modal form with user edits, use formData (it contains merged data + user changes)
-            // Only use getFormData/externalFormData if formData is empty
-            if (props.getFormData && (!formData.value || Object.keys(formData.value).length === 0)) {
-                actionData = props.getFormData();
-            } else if (props.data && (!formData.value || Object.keys(formData.value).length === 0)) {
-                actionData = props.data;
+            // If we have getFormData callback, merge that too
+            if (props.getFormData) {
+                actionData = {
+                    ...actionData,
+                    ...props.getFormData(),
+                };
             }
-            // Note: formData.value already includes externalFormData merged in on modal open
 
             // For record actions, ensure record context is always included
             // This is needed for edit/delete actions to know which record to operate on

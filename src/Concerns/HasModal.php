@@ -117,6 +117,20 @@ trait HasModal
         return $this->modalFormSchema($schema);
     }
 
+    /**
+     * Set the modal form schema (Filament compatibility alias).
+     *
+     * @param  array|\Closure  $schema  Form components array or closure
+     */
+    public function form(array|\Closure $schema): static
+    {
+        if ($schema instanceof \Closure) {
+            $schema = $schema();
+        }
+
+        return $this->modalFormSchema($schema);
+    }
+
     public function getRequiresConfirmation(): bool
     {
         return $this->requiresConfirmation;
