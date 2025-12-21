@@ -15,20 +15,54 @@ class RestoreAction extends Action
         $this->modalHeading(__('actions::actions.modal.restore_title'));
         $this->modalDescription(__('actions::actions.modal.restore_description'));
         $this->preserveState(false);
+
+        // Auto-hide based on resource permissions and trashed state
         $this->hidden(function ($record) {
             // Only show for trashed records - hidden when NOT trashed
             if ($record === null) {
                 return true;
             }
+
+            $isTrashed = false;
             if (is_object($record) && method_exists($record, 'trashed')) {
-                return ! $record->trashed();
-            }
-            if (is_array($record)) {
-                return empty($record['deleted_at']);
+                $isTrashed = $record->trashed();
+            } elseif (is_array($record)) {
+                $isTrashed = ! empty($record['deleted_at']);
             }
 
-            return true;
+            if (! $isTrashed) {
+                return true;
+            }
+
+            // Check permissions
+            return ! $this->canRestoreRecord($record);
         });
+    }
+
+    /**
+     * Check if the current user can restore the record.
+     */
+    protected function canRestoreRecord(mixed $record): bool
+    {
+        // Get the Page class this action belongs to
+        $pageClass = $this->getComponentClass();
+
+        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
+            return true; // No resource context, allow by default
+        }
+
+        $resource = $pageClass::getResource();
+
+        if (! $resource) {
+            return true;
+        }
+
+        // Check if resource has permission methods (from HasResourceAuthorization trait)
+        if (method_exists($resource, 'canRestore')) {
+            return $resource::canRestore($record);
+        }
+
+        return true; // No permission check available, allow by default
     }
 
     /**
@@ -52,6 +86,12 @@ class RestoreAction extends Action
                     $this->action(function () use ($recordId, $resource, $modelClass) {
                         // Include soft deleted records in the query
                         $record = $modelClass::withTrashed()->findOrFail($recordId);
+
+                        // Double-check permission before restore
+                        if (method_exists($resource, 'canRestore') && ! $resource::canRestore($record)) {
+                            abort(403);
+                        }
+
                         $record->restore();
 
                         \Laravilt\Notifications\Notification::success()

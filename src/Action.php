@@ -26,6 +26,10 @@ class Action implements Arrayable
 
     protected ?Closure $authorize = null;
 
+    protected ?string $requiredPermission = null;
+
+    protected ?string $requiredAbility = null;
+
     protected array $extraAttributes = [];
 
     protected ?string $size = null;
@@ -99,6 +103,44 @@ class Action implements Arrayable
         $this->authorize = $authorize;
 
         return $this;
+    }
+
+    /**
+     * Set a required permission for this action.
+     * Uses Spatie Permission to check if user has the permission.
+     */
+    public function can(string $permission): static
+    {
+        $this->requiredPermission = $permission;
+
+        return $this;
+    }
+
+    /**
+     * Set a required ability (Gate) for this action.
+     * Uses Laravel Gates to check authorization.
+     */
+    public function ability(string $ability): static
+    {
+        $this->requiredAbility = $ability;
+
+        return $this;
+    }
+
+    /**
+     * Get the required permission.
+     */
+    public function getRequiredPermission(): ?string
+    {
+        return $this->requiredPermission;
+    }
+
+    /**
+     * Get the required ability.
+     */
+    public function getRequiredAbility(): ?string
+    {
+        return $this->requiredAbility;
     }
 
     public function disabled(bool $condition = true): static
@@ -230,11 +272,59 @@ class Action implements Arrayable
 
     public function canAuthorize(mixed $record = null): bool
     {
-        if ($this->authorize === null) {
-            return true;
+        $user = auth()->user();
+
+        // Check super admin bypass
+        if ($user && config('laravilt-users.super_admin.enabled', true)) {
+            $superAdminRole = config('laravilt-users.super_admin.role', 'super_admin');
+            if (method_exists($user, 'hasRole') && $user->hasRole($superAdminRole)) {
+                return true;
+            }
         }
 
-        return (bool) call_user_func($this->authorize, $record);
+        // Check required permission
+        if ($this->requiredPermission !== null) {
+            if (! $user) {
+                return false;
+            }
+
+            if (method_exists($user, 'hasPermissionTo')) {
+                try {
+                    if (! $user->hasPermissionTo($this->requiredPermission)) {
+                        return false;
+                    }
+                } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
+                    // Permission doesn't exist - allow access by default
+                    // Run `php artisan laravilt:secure` to generate permissions
+                }
+            } else {
+                try {
+                    if (! \Illuminate\Support\Facades\Gate::allows($this->requiredPermission)) {
+                        return false;
+                    }
+                } catch (\Exception $e) {
+                    // Gate not defined - allow access by default
+                }
+            }
+        }
+
+        // Check required ability (Gate)
+        if ($this->requiredAbility !== null) {
+            if ($record) {
+                if (! \Illuminate\Support\Facades\Gate::allows($this->requiredAbility, $record)) {
+                    return false;
+                }
+            } elseif (! \Illuminate\Support\Facades\Gate::allows($this->requiredAbility)) {
+                return false;
+            }
+        }
+
+        // Check custom authorize closure
+        if ($this->authorize !== null) {
+            return (bool) call_user_func($this->authorize, $record);
+        }
+
+        return true;
     }
 
     public function isDisabled(): bool

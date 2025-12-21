@@ -13,20 +13,48 @@ class DeleteAction extends Action
         $this->tooltip(__('actions::actions.tooltips.delete'));
         $this->requiresConfirmation();
         $this->preserveState(false); // Full page reload to follow redirect
+
+        // Auto-hide based on resource permissions and trashed state
         $this->hidden(function ($record) {
             // Hide for trashed records - can't soft-delete an already deleted record
-            if ($record === null) {
-                return false;
-            }
-            if (is_object($record) && method_exists($record, 'trashed')) {
-                return $record->trashed();
-            }
-            if (is_array($record)) {
-                return ! empty($record['deleted_at']);
+            if ($record !== null) {
+                if (is_object($record) && method_exists($record, 'trashed') && $record->trashed()) {
+                    return true;
+                }
+                if (is_array($record) && ! empty($record['deleted_at'])) {
+                    return true;
+                }
             }
 
-            return false;
+            // Check permissions
+            return ! $this->canDeleteRecord($record);
         });
+    }
+
+    /**
+     * Check if the current user can delete the record.
+     */
+    protected function canDeleteRecord(mixed $record): bool
+    {
+        // Get the Page class this action belongs to
+        $pageClass = $this->getComponentClass();
+
+        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
+            return true; // No resource context, allow by default
+        }
+
+        $resource = $pageClass::getResource();
+
+        if (! $resource) {
+            return true;
+        }
+
+        // Check if resource has permission methods (from HasResourceAuthorization trait)
+        if (method_exists($resource, 'canDelete')) {
+            return $resource::canDelete($record);
+        }
+
+        return true; // No permission check available, allow by default
     }
 
     /**
@@ -49,6 +77,12 @@ class DeleteAction extends Action
                     // Auto-configure action to delete record and redirect
                     $this->action(function () use ($recordId, $resource, $modelClass) {
                         $record = $modelClass::findOrFail($recordId);
+
+                        // Double-check permission before delete
+                        if (method_exists($resource, 'canDelete') && ! $resource::canDelete($record)) {
+                            abort(403);
+                        }
+
                         $record->delete();
 
                         \Laravilt\Notifications\Notification::success()

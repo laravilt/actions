@@ -15,6 +15,37 @@ class CreateAction extends Action
         $this->name ??= 'create';
         $this->icon('Plus');
         $this->color('primary');
+
+        // Auto-hide based on resource permissions
+        $this->hidden(function ($record) {
+            return ! $this->canCreateRecord();
+        });
+    }
+
+    /**
+     * Check if the current user can create records.
+     */
+    protected function canCreateRecord(): bool
+    {
+        // Get the Page class this action belongs to
+        $pageClass = $this->getComponentClass();
+
+        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
+            return true; // No resource context, allow by default
+        }
+
+        $resource = $pageClass::getResource();
+
+        if (! $resource) {
+            return true;
+        }
+
+        // Check if resource has permission methods (from HasResourceAuthorization trait)
+        if (method_exists($resource, 'canCreate')) {
+            return $resource::canCreate();
+        }
+
+        return true; // No permission check available, allow by default
     }
 
     /**

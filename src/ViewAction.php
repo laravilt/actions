@@ -12,6 +12,37 @@ class ViewAction extends Action
         $this->color('secondary');
         $this->tooltip(__('actions::actions.tooltips.view'));
         $this->method('GET'); // Navigation action - use GET
+
+        // Auto-hide based on resource permissions
+        $this->hidden(function ($record) {
+            return ! $this->canViewRecord($record);
+        });
+    }
+
+    /**
+     * Check if the current user can view the record.
+     */
+    protected function canViewRecord(mixed $record): bool
+    {
+        // Get the Page class this action belongs to
+        $pageClass = $this->getComponentClass();
+
+        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
+            return true; // No resource context, allow by default
+        }
+
+        $resource = $pageClass::getResource();
+
+        if (! $resource) {
+            return true;
+        }
+
+        // Check if resource has permission methods (from HasResourceAuthorization trait)
+        if (method_exists($resource, 'canView')) {
+            return $resource::canView($record);
+        }
+
+        return true; // No permission check available, allow by default
     }
 
     /**

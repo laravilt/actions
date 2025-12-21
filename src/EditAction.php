@@ -12,20 +12,48 @@ class EditAction extends Action
         $this->color('warning');
         $this->tooltip(__('actions::actions.tooltips.edit'));
         $this->method('GET'); // Navigation action - use GET
+
+        // Auto-hide based on resource permissions and trashed state
         $this->hidden(function ($record) {
             // Hide for trashed records - can't edit a deleted record
-            if ($record === null) {
-                return false;
-            }
-            if (is_object($record) && method_exists($record, 'trashed')) {
-                return $record->trashed();
-            }
-            if (is_array($record)) {
-                return ! empty($record['deleted_at']);
+            if ($record !== null) {
+                if (is_object($record) && method_exists($record, 'trashed') && $record->trashed()) {
+                    return true;
+                }
+                if (is_array($record) && ! empty($record['deleted_at'])) {
+                    return true;
+                }
             }
 
-            return false;
+            // Check permissions
+            return ! $this->canEditRecord($record);
         });
+    }
+
+    /**
+     * Check if the current user can edit the record.
+     */
+    protected function canEditRecord(mixed $record): bool
+    {
+        // Get the Page class this action belongs to
+        $pageClass = $this->getComponentClass();
+
+        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
+            return true; // No resource context, allow by default
+        }
+
+        $resource = $pageClass::getResource();
+
+        if (! $resource) {
+            return true;
+        }
+
+        // Check if resource has permission methods (from HasResourceAuthorization trait)
+        if (method_exists($resource, 'canUpdate')) {
+            return $resource::canUpdate($record);
+        }
+
+        return true; // No permission check available, allow by default
     }
 
     /**

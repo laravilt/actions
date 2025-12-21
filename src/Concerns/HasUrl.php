@@ -25,9 +25,25 @@ trait HasUrl
         return $this;
     }
 
-    public function getUrl(): string|Closure|null
+    public function getUrl(mixed $record = null): ?string
     {
+        if ($this->url instanceof Closure) {
+            if ($record === null) {
+                return null;
+            }
+
+            return ($this->url)($record);
+        }
+
         return $this->url;
+    }
+
+    /**
+     * Check if the URL is callable (closure-based).
+     */
+    public function hasCallableUrl(): bool
+    {
+        return $this->url instanceof Closure;
     }
 
     public function shouldOpenUrlInNewTab(): bool
