@@ -47,22 +47,40 @@ class ForceDeleteAction extends Action
         // Get the Page class this action belongs to
         $pageClass = $this->getComponentClass();
 
-        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
-            return true; // No resource context, allow by default
+        if ($pageClass && method_exists($pageClass, 'getResource')) {
+            $resource = $pageClass::getResource();
+            if ($resource && method_exists($resource, 'canForceDelete')) {
+                return $resource::canForceDelete($record);
+            }
         }
 
-        $resource = $pageClass::getResource();
+        // Fallback: check permission directly from record
+        return $this->checkPermissionDirectly('force_delete', $record);
+    }
 
-        if (! $resource) {
+    /**
+     * Check permission directly using the record's model class.
+     */
+    protected function checkPermissionDirectly(string $action, mixed $record): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasPermissionTo')) {
             return true;
         }
 
-        // Check if resource has permission methods (from HasResourceAuthorization trait)
-        if (method_exists($resource, 'canForceDelete')) {
-            return $resource::canForceDelete($record);
+        if ($record) {
+            $modelName = is_object($record) ? class_basename($record) : null;
+            if ($modelName) {
+                $permissionName = $action.'_'.str($modelName)->snake()->toString();
+                try {
+                    return $user->hasPermissionTo($permissionName);
+                } catch (\Exception $e) {
+                    return false;
+                }
+            }
         }
 
-        return true; // No permission check available, allow by default
+        return true;
     }
 
     /**

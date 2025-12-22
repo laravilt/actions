@@ -69,4 +69,9 @@ class BulkActionGroup implements Arrayable
                 ->all(),
         ];
     }
+
+    public function toInertiaProps(): array
+    {
+        return $this->toArray();
+    }
 }

@@ -8,6 +8,8 @@ class ForceDeleteBulkAction extends BulkAction
 {
     protected ?string $model = null;
 
+    protected ?string $resource = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -21,6 +23,85 @@ class ForceDeleteBulkAction extends BulkAction
         $this->modalHeading(__('actions::actions.modal.bulk_force_delete_title'));
         $this->modalDescription(__('actions::actions.modal.bulk_force_delete_description'));
         $this->deselectRecordsAfterCompletion();
+
+        // Auto-hide if user doesn't have force_delete permission
+        $this->visible(function () {
+            return $this->checkForceDeletePermission();
+        });
+    }
+
+    /**
+     * Check if the current user has force_delete permission.
+     */
+    protected function checkForceDeletePermission(): bool
+    {
+        // If resource is set, use its permission check
+        if ($this->resource && class_exists($this->resource)) {
+            return $this->resource::canForceDelete();
+        }
+
+        // If model is set, try to find its resource and check permission
+        if ($this->model) {
+            $resource = $this->findResourceForModel($this->model);
+            if ($resource) {
+                return $resource::canForceDelete();
+            }
+        }
+
+        // Default to checking force_delete permission directly
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasPermissionTo')) {
+            return true; // No auth system, allow by default
+        }
+
+        // Try to determine permission name from model
+        if ($this->model) {
+            $modelName = class_basename($this->model);
+            $permissionName = 'force_delete_'.str($modelName)->snake()->toString();
+
+            try {
+                return $user->hasPermissionTo($permissionName);
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Find the resource class for a model.
+     */
+    protected function findResourceForModel(string $model): ?string
+    {
+        // Get all registered resources from the current panel
+        try {
+            $panel = app('laravilt.panel.current');
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        if (! $panel) {
+            return null;
+        }
+
+        foreach ($panel->getResources() as $resource) {
+            if ($resource::getModel() === $model) {
+                return $resource;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Set the resource class for permission checking.
+     */
+    public function resource(string $resource): static
+    {
+        $this->resource = $resource;
+
+        return $this;
     }
 
     /**

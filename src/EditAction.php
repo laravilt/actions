@@ -38,15 +38,49 @@ class EditAction extends Action
         // Get the Page class this action belongs to
         $pageClass = $this->getComponentClass();
 
-        if (! $pageClass || ! method_exists($pageClass, 'getResource')) {
-            return true; // No resource context, allow by default
+        if ($pageClass && method_exists($pageClass, 'getResource')) {
+            $resource = $pageClass::getResource();
+            if ($resource && method_exists($resource, 'canUpdate')) {
+                return $resource::canUpdate($record);
+            }
         }
 
-        $resource = $pageClass::getResource();
+        // Fallback: check permission directly from record
+        return $this->checkPermissionDirectly('update', $record);
+    }
 
-        if (! $resource) {
+    /**
+     * Check permission directly using the record's model class.
+     */
+    protected function checkPermissionDirectly(string $action, mixed $record): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasPermissionTo')) {
             return true;
         }
+
+        if ($record) {
+            $modelName = is_object($record) ? class_basename($record) : null;
+            if ($modelName) {
+                $permissionName = $action.'_'.str($modelName)->snake()->toString();
+                try {
+                    return $user->hasPermissionTo($permissionName);
+                } catch (\Exception $e) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Placeholder for old method - no longer used.
+     */
+    protected function oldCanEditRecord(mixed $record): bool
+    {
+        $pageClass = $this->getComponentClass();
+        $resource = $pageClass ? $pageClass::getResource() : null;
 
         // Check if resource has permission methods (from HasResourceAuthorization trait)
         if (method_exists($resource, 'canUpdate')) {

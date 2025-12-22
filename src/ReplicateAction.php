@@ -28,6 +28,44 @@ class ReplicateAction extends Action
         $this->modalHeading(__('actions::actions.replicate.modal.heading'));
         $this->modalDescription(__('actions::actions.replicate.modal.description'));
         $this->modalSubmitActionLabel(__('actions::actions.replicate.modal.submit'));
+
+        // Auto-hide if user doesn't have replicate permission
+        $this->visible(fn ($record) => $this->checkReplicatePermission($record));
+    }
+
+    /**
+     * Check if the current user has replicate permission.
+     */
+    protected function checkReplicatePermission(mixed $record = null): bool
+    {
+        // Try to get resource from page context
+        $pageClass = $this->getComponentClass();
+        if ($pageClass && method_exists($pageClass, 'getResource')) {
+            $resource = $pageClass::getResource();
+            if ($resource && method_exists($resource, 'canReplicate')) {
+                return $resource::canReplicate($record);
+            }
+        }
+
+        // Fallback: check permission directly
+        $user = auth()->user();
+        if (! $user || ! method_exists($user, 'hasPermissionTo')) {
+            return true;
+        }
+
+        // Try to determine permission from record
+        if ($record) {
+            $modelName = class_basename($record);
+            $permissionName = 'replicate_'.str($modelName)->snake()->toString();
+
+            try {
+                return $user->hasPermissionTo($permissionName);
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
