@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Response;
-use Laravel\SerializableClosure\SerializableClosure;
+use Laravilt\Actions\Action;
 use Laravilt\Notifications\Notification;
 use Laravilt\Panel\Facades\Laravilt;
 use Laravilt\Panel\PanelRegistry;
@@ -134,10 +134,8 @@ class ActionController extends Controller
             return back()->withErrors(['action' => 'Action not found or expired']);
         }
 
-        // Get the actual closure from SerializableClosure
-        $actionClosure = $serializableClosure instanceof SerializableClosure
-            ? $serializableClosure->getClosure()
-            : $serializableClosure;
+        // Get the actual closure (stored as a serialized string, or a legacy SerializableClosure object)
+        $actionClosure = Action::restoreActionClosure($serializableClosure);
 
         if (! is_callable($actionClosure)) {
             return back()->withErrors(['action' => 'Invalid action']);

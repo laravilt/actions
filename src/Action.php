@@ -507,6 +507,29 @@ class Action implements Arrayable
     }
 
     /**
+     * Serialize the action closure to a string for session storage.
+     *
+     * Storing a string (not the SerializableClosure object) keeps the closure intact when the
+     * session uses JSON serialization, the default since Laravel 13.
+     */
+    protected function serializeActionClosure(): string
+    {
+        return serialize(new SerializableClosure($this->action));
+    }
+
+    /**
+     * Restore an action closure stored by serializeActionClosure() (or a legacy SerializableClosure object).
+     */
+    public static function restoreActionClosure(mixed $stored): mixed
+    {
+        if (is_string($stored)) {
+            $stored = unserialize($stored);
+        }
+
+        return $stored instanceof SerializableClosure ? $stored->getClosure() : $stored;
+    }
+
+    /**
      * Generate token for standalone actions (without component context).
      */
     protected function getStandaloneActionToken(?string $panelId = null): string
@@ -516,8 +539,7 @@ class Action implements Arrayable
             $actionId = 'action_'.$this->stableId;
 
             // Always update the closure in session (in case it was modified)
-            $serializableClosure = new SerializableClosure($this->action);
-            session()->put("action.{$actionId}", $serializableClosure);
+            session()->put("action.{$actionId}", $this->serializeActionClosure());
 
             // Set the action URL to the execute route
             $this->actionUrl = route('actions.execute');
@@ -538,11 +560,8 @@ class Action implements Arrayable
         // This is used for one-time actions that don't need persistence
         $actionId = 'action_'.$this->getName().'_'.uniqid();
 
-        // Wrap closure in SerializableClosure to allow session storage
-        $serializableClosure = new SerializableClosure($this->action);
-
-        // Store the serializable closure in session
-        session()->put("action.{$actionId}", $serializableClosure);
+        // Store the serialized closure in session
+        session()->put("action.{$actionId}", $this->serializeActionClosure());
 
         // Set the action URL to the execute route
         $this->actionUrl = route('actions.execute');
