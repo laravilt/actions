@@ -26,7 +26,7 @@
         "maatwebsite/excel": "^3.1",
         "laravilt/forms": "^1.0",
         "laravilt/panel": "^1.0",
-        "inertiajs/inertia-laravel": "^2.0"
+        "inertiajs/inertia-laravel": "^2.0 || ^3.0"
     },
     "require-dev": {
         "larastan/larastan": "^2.9||^3.0",
