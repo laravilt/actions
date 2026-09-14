@@ -6,6 +6,7 @@ namespace Laravilt\Actions;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Laravilt\Notifications\Notification;
 
 class ReplicateAction extends Action
 {
@@ -183,7 +184,7 @@ class ReplicateAction extends Action
                             call_user_func($afterReplicaSaved, $replica, $record);
                         }
 
-                        \Laravilt\Notifications\Notification::success()
+                        Notification::success()
                             ->title(__('notifications::notifications.success'))
                             ->body(__('actions::actions.replicate.messages.success'))
                             ->send();

@@ -2,6 +2,11 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Notifications\Notification;
+use Laravilt\Panel\Facades\Panel;
+use Laravilt\Panel\Pages\ManageRecords;
+use Laravilt\Schemas\Schema;
+
 class CreateAction extends Action
 {
     protected ?string $modelClass = null;
@@ -104,7 +109,7 @@ class CreateAction extends Action
                 $newRecord->fill($data);
                 $newRecord->save();
 
-                \Laravilt\Notifications\Notification::success()
+                Notification::success()
                     ->title(__('notifications::notifications.success'))
                     ->body(__('actions::actions.messages.created'))
                     ->send();
@@ -147,11 +152,11 @@ class CreateAction extends Action
         $label = $resource::getLabel();
 
         // Check if this is a ManageRecords page (modal-based CRUD)
-        if (is_subclass_of($pageClass, \Laravilt\Panel\Pages\ManageRecords::class)) {
+        if (is_subclass_of($pageClass, ManageRecords::class)) {
             // Get the page instance to access form schema
             $page = app($pageClass);
             if (method_exists($page, 'getPanel')) {
-                $panel = \Laravilt\Panel\Facades\Panel::getCurrent();
+                $panel = Panel::getCurrent();
                 if ($panel) {
                     $page->panel($panel);
                 }
@@ -160,7 +165,7 @@ class CreateAction extends Action
             // Get form schema from page
             $formSchema = [];
             if (method_exists($page, 'form')) {
-                $schema = $page->form(\Laravilt\Schemas\Schema::make());
+                $schema = $page->form(Schema::make());
                 $formSchema = $schema->getSchema();
             }
 

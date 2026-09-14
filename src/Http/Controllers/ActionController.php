@@ -2,9 +2,22 @@
 
 namespace Laravilt\Actions\Http\Controllers;
 
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Inertia\Response;
+use Laravel\SerializableClosure\SerializableClosure;
+use Laravilt\Notifications\Notification;
+use Laravilt\Panel\Facades\Laravilt;
+use Laravilt\Panel\PanelRegistry;
+use Laravilt\Panel\Tenancy\MultiDatabaseManager;
+use Laravilt\Support\Utilities\Get;
+use Laravilt\Support\Utilities\Set;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ActionController extends Controller
 {
@@ -20,8 +33,8 @@ class ActionController extends Controller
             // Set the current panel from payload before executing any action
             // This ensures getPanel() returns the correct panel during action execution
             $panelId = $payload['panel'] ?? null;
-            if ($panelId && class_exists(\Laravilt\Panel\PanelRegistry::class)) {
-                $registry = app(\Laravilt\Panel\PanelRegistry::class);
+            if ($panelId && class_exists(PanelRegistry::class)) {
+                $registry = app(PanelRegistry::class);
                 if ($registry->has($panelId)) {
                     $registry->setCurrent($panelId);
                 }
@@ -79,7 +92,7 @@ class ActionController extends Controller
             $result = $action->execute($record, $data);
 
             // If the result is a redirect response or Inertia location response, return it directly
-            if ($result instanceof \Illuminate\Http\RedirectResponse ||
+            if ($result instanceof RedirectResponse ||
                 $result instanceof \Symfony\Component\HttpFoundation\Response) {
                 return $result;
             }
@@ -89,7 +102,7 @@ class ActionController extends Controller
                 'message' => 'Action executed successfully',
                 'result' => $result,
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Let validation exceptions bubble up for proper Inertia handling
             throw $e;
         } catch (\Exception $e) {
@@ -122,7 +135,7 @@ class ActionController extends Controller
         }
 
         // Get the actual closure from SerializableClosure
-        $actionClosure = $serializableClosure instanceof \Laravel\SerializableClosure\SerializableClosure
+        $actionClosure = $serializableClosure instanceof SerializableClosure
             ? $serializableClosure->getClosure()
             : $serializableClosure;
 
@@ -185,12 +198,12 @@ class ActionController extends Controller
             $paramName = $parameter->getName();
 
             // Inject Get utility
-            if ($typeName === \Laravilt\Support\Utilities\Get::class) {
-                $args[] = new \Laravilt\Support\Utilities\Get($data);
+            if ($typeName === Get::class) {
+                $args[] = new Get($data);
             }
             // Inject Set utility
-            elseif ($typeName === \Laravilt\Support\Utilities\Set::class) {
-                $args[] = new \Laravilt\Support\Utilities\Set($data);
+            elseif ($typeName === Set::class) {
+                $args[] = new Set($data);
             }
             // Parameter explicitly named 'data' always gets the data array
             elseif ($paramName === 'data') {
@@ -250,8 +263,8 @@ class ActionController extends Controller
         }
 
         // If the result is a redirect response or Inertia location response, attach notifications and return it
-        if ($result instanceof \Illuminate\Http\RedirectResponse ||
-            $result instanceof \Inertia\Response ||
+        if ($result instanceof RedirectResponse ||
+            $result instanceof Response ||
             ($result instanceof \Symfony\Component\HttpFoundation\Response && $result->getStatusCode() === 409)) {
             // Flash notifications for the redirect destination
             if (! empty($notifications)) {
@@ -326,11 +339,11 @@ class ActionController extends Controller
         }
 
         // Check if panel package and tenant manager are available
-        if (! class_exists(\Laravilt\Panel\PanelRegistry::class)) {
+        if (! class_exists(PanelRegistry::class)) {
             return;
         }
 
-        $registry = app(\Laravilt\Panel\PanelRegistry::class);
+        $registry = app(PanelRegistry::class);
         $panel = $registry->get($panelId);
 
         if (! $panel || ! $panel->hasTenancy()) {
@@ -358,13 +371,13 @@ class ActionController extends Controller
         }
 
         // Set the tenant in the TenantManager
-        if (class_exists(\Laravilt\Panel\Facades\Laravilt::class)) {
-            \Laravilt\Panel\Facades\Laravilt::setTenant($tenant);
+        if (class_exists(Laravilt::class)) {
+            Laravilt::setTenant($tenant);
         }
 
         // For multi-database tenancy, initialize the database connection
-        if ($panel->isMultiDatabaseTenancy() && class_exists(\Laravilt\Panel\Tenancy\MultiDatabaseManager::class)) {
-            $multiDbManager = app(\Laravilt\Panel\Tenancy\MultiDatabaseManager::class);
+        if ($panel->isMultiDatabaseTenancy() && class_exists(MultiDatabaseManager::class)) {
+            $multiDbManager = app(MultiDatabaseManager::class);
             $multiDbManager->initialize($tenant);
         }
     }
@@ -383,7 +396,7 @@ class ActionController extends Controller
 
         try {
             $config = Crypt::decrypt($token);
-        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+        } catch (DecryptException $e) {
             abort(400, 'Invalid export token.');
         }
 
@@ -397,7 +410,7 @@ class ActionController extends Controller
         try {
             $exporter = new $exporterClass;
 
-            return \Maatwebsite\Excel\Facades\Excel::download($exporter, $fileName);
+            return Excel::download($exporter, $fileName);
         } catch (\Exception $e) {
             abort(500, 'Export failed: '.$e->getMessage());
         }
@@ -430,9 +443,9 @@ class ActionController extends Controller
                     $disksToCheck = array_unique($disksToCheck);
 
                     foreach ($disksToCheck as $disk) {
-                        if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($filePath)) {
+                        if (Storage::disk($disk)->exists($filePath)) {
                             // Get the full path to the file
-                            $file = \Illuminate\Support\Facades\Storage::disk($disk)->path($filePath);
+                            $file = Storage::disk($disk)->path($filePath);
                             break;
                         }
                     }
@@ -445,7 +458,7 @@ class ActionController extends Controller
 
             $importer = new $importerClass;
 
-            \Maatwebsite\Excel\Facades\Excel::import($importer, $file);
+            Excel::import($importer, $file);
 
             // Clean up temp file if it was from FilePond
             if ($filePath && is_string($filePath)) {
@@ -453,20 +466,20 @@ class ActionController extends Controller
                 $disksToCheck = array_unique($disksToCheck);
 
                 foreach ($disksToCheck as $disk) {
-                    if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($filePath)) {
-                        \Illuminate\Support\Facades\Storage::disk($disk)->delete($filePath);
+                    if (Storage::disk($disk)->exists($filePath)) {
+                        Storage::disk($disk)->delete($filePath);
                         break;
                     }
                 }
             }
 
-            \Laravilt\Notifications\Notification::success()
+            Notification::success()
                 ->title(__('notifications::notifications.success'))
                 ->body(__('actions::actions.import.messages.success'))
                 ->send();
 
             return redirect()->back(303);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
             return back()->withErrors(['import' => 'Import failed: '.$e->getMessage()]);

@@ -2,6 +2,8 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Notifications\Notification;
+
 class ForceDeleteAction extends Action
 {
     protected function setUp(): void
@@ -112,7 +114,7 @@ class ForceDeleteAction extends Action
 
                         $record->forceDelete();
 
-                        \Laravilt\Notifications\Notification::success()
+                        Notification::success()
                             ->title(__('notifications::notifications.success'))
                             ->body(__('actions::actions.messages.force_deleted'))
                             ->send();

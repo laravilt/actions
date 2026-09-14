@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Laravilt\Actions\Http\Controllers\ActionController;
+use Laravilt\Panel\Http\Middleware\HandleLocalization;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,8 +17,8 @@ use Laravilt\Actions\Http\Controllers\ActionController;
 
 // Build middleware array - only include HandleLocalization if panel package is available
 $middleware = ['web'];
-if (class_exists(\Laravilt\Panel\Http\Middleware\HandleLocalization::class)) {
-    $middleware[] = \Laravilt\Panel\Http\Middleware\HandleLocalization::class;
+if (class_exists(HandleLocalization::class)) {
+    $middleware[] = HandleLocalization::class;
 }
 
 Route::middleware($middleware)->group(function () {

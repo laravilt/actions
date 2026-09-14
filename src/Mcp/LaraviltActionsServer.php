@@ -3,6 +3,7 @@
 namespace Laravilt\Actions\Mcp;
 
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Tool;
 use Laravilt\Actions\Mcp\Tools\GenerateActionTool;
 use Laravilt\Actions\Mcp\Tools\SearchDocsTool;
 
@@ -35,7 +36,7 @@ class LaraviltActionsServer extends Server
     /**
      * The tools registered with this MCP server.
      *
-     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
+     * @var array<int, class-string<Tool>>
      */
     protected array $tools = [
         GenerateActionTool::class,

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Laravilt\Actions;
 
 use Closure;
+use Laravilt\Forms\Components\FileUpload;
+use Laravilt\Forms\Components\Hidden;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportAction extends Action
@@ -47,9 +49,9 @@ class ImportAction extends Action
     public function getModalFormSchema(): array
     {
         return [
-            \Laravilt\Forms\Components\Hidden::make('importer')
+            Hidden::make('importer')
                 ->default($this->importerClass),
-            \Laravilt\Forms\Components\FileUpload::make('file')
+            FileUpload::make('file')
                 ->label(__('actions::actions.import.fields.file'))
                 ->required()
                 ->acceptedFileTypes($this->acceptedFileTypes),

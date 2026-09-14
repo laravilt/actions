@@ -1,6 +1,7 @@
 <?php
 
 use Laravilt\Actions\ImportAction;
+use Maatwebsite\Excel\Excel;
 
 describe('ImportAction Basic Features', function () {
     it('can be instantiated with make method', function () {
@@ -59,7 +60,7 @@ describe('ImportAction Reader Types', function () {
 
     it('can set reader type directly', function () {
         $action = ImportAction::make()
-            ->readerType(\Maatwebsite\Excel\Excel::CSV);
+            ->readerType(Excel::CSV);
 
         expect($action)->toBeInstanceOf(ImportAction::class);
     });

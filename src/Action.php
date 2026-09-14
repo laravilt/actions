@@ -4,12 +4,17 @@ namespace Laravilt\Actions;
 
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Gate;
+use Laravel\SerializableClosure\SerializableClosure;
 use Laravilt\Actions\Concerns\CanBeHidden;
 use Laravilt\Actions\Concerns\HasColor;
 use Laravilt\Actions\Concerns\HasIcon;
 use Laravilt\Actions\Concerns\HasLabel;
 use Laravilt\Actions\Concerns\HasModal;
 use Laravilt\Actions\Concerns\HasUrl;
+use Laravilt\Panel\PanelRegistry;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 class Action implements Arrayable
 {
@@ -293,13 +298,13 @@ class Action implements Arrayable
                     if (! $user->hasPermissionTo($this->requiredPermission)) {
                         return false;
                     }
-                } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
+                } catch (PermissionDoesNotExist $e) {
                     // Permission doesn't exist - allow access by default
                     // Run `php artisan laravilt:secure` to generate permissions
                 }
             } else {
                 try {
-                    if (! \Illuminate\Support\Facades\Gate::allows($this->requiredPermission)) {
+                    if (! Gate::allows($this->requiredPermission)) {
                         return false;
                     }
                 } catch (\Exception $e) {
@@ -311,10 +316,10 @@ class Action implements Arrayable
         // Check required ability (Gate)
         if ($this->requiredAbility !== null) {
             if ($record) {
-                if (! \Illuminate\Support\Facades\Gate::allows($this->requiredAbility, $record)) {
+                if (! Gate::allows($this->requiredAbility, $record)) {
                     return false;
                 }
-            } elseif (! \Illuminate\Support\Facades\Gate::allows($this->requiredAbility)) {
+            } elseif (! Gate::allows($this->requiredAbility)) {
                 return false;
             }
         }
@@ -474,7 +479,7 @@ class Action implements Arrayable
         }
 
         // Component-based actions (no closure) use encrypted component metadata
-        return \Illuminate\Support\Facades\Crypt::encrypt([
+        return Crypt::encrypt([
             'component' => $this->componentClass,
             'id' => $this->componentId,
             'action' => $this->getName(),
@@ -487,12 +492,12 @@ class Action implements Arrayable
      */
     protected function detectCurrentPanelId(): ?string
     {
-        if (! class_exists(\Laravilt\Panel\PanelRegistry::class)) {
+        if (! class_exists(PanelRegistry::class)) {
             return null;
         }
 
         try {
-            $registry = app(\Laravilt\Panel\PanelRegistry::class);
+            $registry = app(PanelRegistry::class);
             $panel = $registry->getCurrent();
 
             return $panel?->getId();
@@ -511,14 +516,14 @@ class Action implements Arrayable
             $actionId = 'action_'.$this->stableId;
 
             // Always update the closure in session (in case it was modified)
-            $serializableClosure = new \Laravel\SerializableClosure\SerializableClosure($this->action);
+            $serializableClosure = new SerializableClosure($this->action);
             session()->put("action.{$actionId}", $serializableClosure);
 
             // Set the action URL to the execute route
             $this->actionUrl = route('actions.execute');
 
             // Return encrypted token with stable action_id
-            return \Illuminate\Support\Facades\Crypt::encrypt([
+            return Crypt::encrypt([
                 'action_id' => $actionId,
                 'panel' => $panelId,
             ]);
@@ -534,7 +539,7 @@ class Action implements Arrayable
         $actionId = 'action_'.$this->getName().'_'.uniqid();
 
         // Wrap closure in SerializableClosure to allow session storage
-        $serializableClosure = new \Laravel\SerializableClosure\SerializableClosure($this->action);
+        $serializableClosure = new SerializableClosure($this->action);
 
         // Store the serializable closure in session
         session()->put("action.{$actionId}", $serializableClosure);
@@ -543,7 +548,7 @@ class Action implements Arrayable
         $this->actionUrl = route('actions.execute');
 
         // Cache and return encrypted token with action_id and panel
-        $this->cachedActionToken = \Illuminate\Support\Facades\Crypt::encrypt([
+        $this->cachedActionToken = Crypt::encrypt([
             'action_id' => $actionId,
             'panel' => $panelId,
         ]);

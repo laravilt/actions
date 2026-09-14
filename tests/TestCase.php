@@ -2,6 +2,7 @@
 
 namespace Laravilt\Actions\Tests;
 
+use Laravilt\Actions\ActionsServiceProvider;
 use Maatwebsite\Excel\ExcelServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -18,7 +19,7 @@ class TestCase extends Orchestra
     {
         return [
             ExcelServiceProvider::class,
-            \Laravilt\Actions\ActionsServiceProvider::class,
+            ActionsServiceProvider::class,
         ];
     }
 

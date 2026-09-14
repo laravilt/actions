@@ -1,6 +1,7 @@
 <?php
 
 use Laravilt\Actions\ExportAction;
+use Maatwebsite\Excel\Excel;
 
 describe('ExportAction Basic Features', function () {
     it('can be instantiated with make method', function () {
@@ -70,7 +71,7 @@ describe('ExportAction Writer Types', function () {
 
     it('can set writer type directly', function () {
         $action = ExportAction::make()
-            ->writerType(\Maatwebsite\Excel\Excel::CSV);
+            ->writerType(Excel::CSV);
         $filename = $action->getFileName();
 
         expect($filename)->toEndWith('.csv');
@@ -78,7 +79,7 @@ describe('ExportAction Writer Types', function () {
 
     it('can set formats from array', function () {
         $action = ExportAction::make()
-            ->formats([\Maatwebsite\Excel\Excel::CSV]);
+            ->formats([Excel::CSV]);
         $filename = $action->getFileName();
 
         expect($filename)->toEndWith('.csv');

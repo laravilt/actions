@@ -7,7 +7,10 @@ namespace Laravilt\Actions;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ExportAction extends Action
@@ -212,7 +215,7 @@ class ExportAction extends Action
         // Otherwise, create a simple array export
         $collection = $this->getExportData($record);
 
-        $export = new class($collection, $this->headings) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings
+        $export = new class($collection, $this->headings) implements FromCollection, WithHeadings
         {
             public function __construct(
                 protected Collection $collection,
@@ -262,7 +265,7 @@ class ExportAction extends Action
     public function toArrayWithRecord(mixed $record = null): array
     {
         // Generate encrypted token for the export configuration
-        $token = \Illuminate\Support\Facades\Crypt::encrypt([
+        $token = Crypt::encrypt([
             'exporter' => $this->exporterClass,
             'fileName' => $this->getFileName(),
         ]);

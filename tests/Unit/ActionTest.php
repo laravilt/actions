@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Crypt;
 use Laravilt\Actions\Action;
 
 describe('Action Basic Features', function () {
@@ -285,7 +286,7 @@ describe('Action Component Metadata', function () {
         expect($token)->toBeString();
 
         // Decrypt and verify token
-        $payload = \Illuminate\Support\Facades\Crypt::decrypt($token);
+        $payload = Crypt::decrypt($token);
 
         expect($payload)->toHaveKey('component')
             ->and($payload)->toHaveKey('id')

@@ -2,6 +2,8 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Notifications\Notification;
+
 class DeleteAction extends Action
 {
     protected function setUp(): void
@@ -103,7 +105,7 @@ class DeleteAction extends Action
 
                         $record->delete();
 
-                        \Laravilt\Notifications\Notification::success()
+                        Notification::success()
                             ->title(__('notifications::notifications.success'))
                             ->body(__('notifications::notifications.record_deleted'))
                             ->send();
