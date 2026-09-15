@@ -8,7 +8,7 @@
                     :variant="buttonVariant"
                     :size="variant === 'icon' ? 'icon' : size"
                     :disabled="disabled || isLoading"
-                    :aria-label="variant === 'icon' ? (label || tooltip || undefined) : undefined"
+                    :aria-label="(variant === 'icon' || (icon && !label)) ? (label || tooltip || undefined) : undefined"
                     :class="cn(buttonClass, props.class)"
                     @click="handleClick"
                     :href="url"
@@ -37,7 +37,7 @@
         :variant="buttonVariant"
         :size="variant === 'icon' ? 'icon' : size"
         :disabled="disabled || isLoading"
-        :aria-label="variant === 'icon' ? (label || tooltip || undefined) : undefined"
+        :aria-label="(variant === 'icon' || (icon && !label)) ? (label || tooltip || undefined) : undefined"
         :class="cn(buttonClass, props.class)"
         @click="handleClick"
         :href="url"
@@ -537,7 +537,7 @@ const handleClick = async (e: Event) => {
         e.preventDefault();
         // Open in new tab if specified (e.g., for file downloads)
         if (props.openUrlInNewTab) {
-            window.open(props.url, '_blank', 'noopener');
+            window.open(props.url, '_blank', 'noopener,noreferrer');
         } else {
             router.visit(props.url);
         }
