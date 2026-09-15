@@ -21,6 +21,9 @@ class {{ class }} extends Action
             ->modalSubmitActionLabel('Submit')
             ->form($this->getFormSchema());
 
+        // Run handle() with the submitted form data
+        $this->action(fn ($record = null, array $data = []) => $this->handle($record, $data));
+{{ authorization }}
         // $this->icon('heroicon-o-check');
         // $this->color('primary');
     }
@@ -39,15 +42,17 @@ class {{ class }} extends Action
             // Add more form fields here
         ];
     }
-
+{{ authorizationMethod }}
     /**
      * Execute the action with form data.
      */
-    public function handle(array $data = []): void
+    public function handle(mixed $record = null, array $data = []): mixed
     {
         // Access form data via $data array
         // Example: $name = $data['name'];
 
         // Implement your action logic here
+
+        return null;
     }
 }

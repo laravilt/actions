@@ -13,16 +13,21 @@ class {{ class }} extends Action
     {
         $this->label('{{ actionLabel }}');
 
+        // Run handle() when the action is executed
+        $this->action(fn ($record = null, array $data = []) => $this->handle($record, $data));
+{{ authorization }}
         // Configure your action here
         // $this->icon('heroicon-o-check');
         // $this->color('primary');
     }
-
+{{ authorizationMethod }}
     /**
      * Execute the action.
      */
-    public function handle(): void
+    public function handle(mixed $record = null, array $data = []): mixed
     {
         // Implement your action logic here
+
+        return null;
     }
 }

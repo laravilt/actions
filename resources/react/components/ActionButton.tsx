@@ -9,7 +9,7 @@ import ErrorProvider from '@laravilt/forms/components/ErrorProvider';
 import Form from '@laravilt/forms/components/Form';
 import InfoList from '@laravilt/infolists/components/InfoList';
 import { useNotification } from '@laravilt/notifications/composables/useNotification';
-import { useSchemaContext } from '@laravilt/support/composables/contexts';
+import { useFormScope, useSchemaContext } from '@laravilt/support/composables/contexts';
 import { useLatest } from '@laravilt/support/composables/hooks';
 import { useLocalization } from '@laravilt/support/composables/useLocalization';
 import { resolveIcon } from '@laravilt/support/lib/icons';
@@ -195,6 +195,9 @@ export default function ActionButton(props: ActionButtonProps) {
 
     // Inject validateForm from parent Form (if available)
     const { validateForm } = useSchemaContext();
+
+    // Nearest form root: tags the action-updated-data event so only that form merges it
+    const latestFormScope = useLatest(useFormScope());
 
     // Initialize notification
     const { notify } = useNotification();
@@ -543,11 +546,12 @@ export default function ActionButton(props: ActionButtonProps) {
                             if (updatedData && Object.keys(updatedData).length > 0) {
                                 // Emit event to update parent form data
                                 // This will be handled by Form / Schema
-                                window.dispatchEvent(
-                                    new CustomEvent('action-updated-data', {
-                                        detail: updatedData,
-                                    }),
-                                );
+                                // `detail` stays the data; the scope rides on the event so only the owning form applies it
+                                const updatedDataEvent = new CustomEvent('action-updated-data', {
+                                    detail: updatedData,
+                                });
+                                (updatedDataEvent as any).laraviltFormScope = latestFormScope.current;
+                                window.dispatchEvent(updatedDataEvent);
                             }
                         }
                     },
@@ -618,7 +622,7 @@ export default function ActionButton(props: ActionButtonProps) {
             e.preventDefault();
             // Open in new tab if specified (e.g., for file downloads)
             if (current.openUrlInNewTab) {
-                window.open(current.url, '_blank', 'noopener');
+                window.open(current.url, '_blank', 'noopener,noreferrer');
             } else {
                 router.visit(current.url);
             }
@@ -649,6 +653,7 @@ export default function ActionButton(props: ActionButtonProps) {
     const linkAttributes: Record<string, any> = {
         href: url,
         target: openUrlInNewTab ? '_blank' : undefined,
+        rel: openUrlInNewTab ? 'noopener noreferrer' : undefined,
     };
 
     const button = (
@@ -657,7 +662,7 @@ export default function ActionButton(props: ActionButtonProps) {
             variant={buttonVariant}
             size={variant === 'icon' ? 'icon' : size}
             disabled={disabled || isLoading}
-            aria-label={variant === 'icon' ? label || tooltip : undefined}
+            aria-label={variant === 'icon' || (icon && !label) ? label || tooltip || undefined : undefined}
             className={cn(buttonClass, props.class, props.className)}
             onClick={handleClick}
             {...linkAttributes}

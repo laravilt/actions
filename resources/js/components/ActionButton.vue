@@ -8,10 +8,12 @@
                     :variant="buttonVariant"
                     :size="variant === 'icon' ? 'icon' : size"
                     :disabled="disabled || isLoading"
+                    :aria-label="(variant === 'icon' || (icon && !label)) ? (label || tooltip || undefined) : undefined"
                     :class="cn(buttonClass, props.class)"
                     @click="handleClick"
                     :href="url"
                     :target="openUrlInNewTab ? '_blank' : undefined"
+                    :rel="openUrlInNewTab ? 'noopener noreferrer' : undefined"
                 >
                     <Spinner v-if="isLoading" class="size-3" />
                     <component
@@ -35,10 +37,12 @@
         :variant="buttonVariant"
         :size="variant === 'icon' ? 'icon' : size"
         :disabled="disabled || isLoading"
+        :aria-label="(variant === 'icon' || (icon && !label)) ? (label || tooltip || undefined) : undefined"
         :class="cn(buttonClass, props.class)"
         @click="handleClick"
         :href="url"
         :target="openUrlInNewTab ? '_blank' : undefined"
+        :rel="openUrlInNewTab ? 'noopener noreferrer' : undefined"
     >
         <Spinner v-if="isLoading" class="size-3" />
         <component
@@ -170,6 +174,9 @@ const page = usePage();
 
 // Inject validateForm from parent Form (if available)
 const validateForm = inject<(() => boolean) | undefined>('validateForm', undefined);
+
+// Nearest form root (Form / root Schema): tags the action-updated-data event so only that form merges it
+const formScope = inject<string | null>('laravilt:form-scope', null);
 
 // Initialize notification
 const { notify } = useNotification();
@@ -530,7 +537,7 @@ const handleClick = async (e: Event) => {
         e.preventDefault();
         // Open in new tab if specified (e.g., for file downloads)
         if (props.openUrlInNewTab) {
-            window.open(props.url, '_blank');
+            window.open(props.url, '_blank', 'noopener,noreferrer');
         } else {
             router.visit(props.url);
         }
@@ -741,9 +748,12 @@ const executeAction = async () => {
                         if (updatedData && Object.keys(updatedData).length > 0) {
                             // Emit event to update parent form data
                             // This will be handled by Form
-                            window.dispatchEvent(new CustomEvent('action-updated-data', {
+                            // `detail` stays the data; the scope rides on the event so only the owning form applies it
+                            const updatedDataEvent = new CustomEvent('action-updated-data', {
                                 detail: updatedData
-                            }));
+                            });
+                            (updatedDataEvent as any).laraviltFormScope = formScope;
+                            window.dispatchEvent(updatedDataEvent);
                         }
                     }
                 },
