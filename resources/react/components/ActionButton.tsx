@@ -618,7 +618,7 @@ export default function ActionButton(props: ActionButtonProps) {
             e.preventDefault();
             // Open in new tab if specified (e.g., for file downloads)
             if (current.openUrlInNewTab) {
-                window.open(current.url, '_blank');
+                window.open(current.url, '_blank', 'noopener');
             } else {
                 router.visit(current.url);
             }
@@ -657,6 +657,7 @@ export default function ActionButton(props: ActionButtonProps) {
             variant={buttonVariant}
             size={variant === 'icon' ? 'icon' : size}
             disabled={disabled || isLoading}
+            aria-label={variant === 'icon' ? label || tooltip : undefined}
             className={cn(buttonClass, props.class, props.className)}
             onClick={handleClick}
             {...linkAttributes}
