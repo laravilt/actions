@@ -649,6 +649,7 @@ export default function ActionButton(props: ActionButtonProps) {
     const linkAttributes: Record<string, any> = {
         href: url,
         target: openUrlInNewTab ? '_blank' : undefined,
+        rel: openUrlInNewTab ? 'noopener noreferrer' : undefined,
     };
 
     const button = (

@@ -8,10 +8,12 @@
                     :variant="buttonVariant"
                     :size="variant === 'icon' ? 'icon' : size"
                     :disabled="disabled || isLoading"
+                    :aria-label="variant === 'icon' ? (label || tooltip || undefined) : undefined"
                     :class="cn(buttonClass, props.class)"
                     @click="handleClick"
                     :href="url"
                     :target="openUrlInNewTab ? '_blank' : undefined"
+                    :rel="openUrlInNewTab ? 'noopener noreferrer' : undefined"
                 >
                     <Spinner v-if="isLoading" class="size-3" />
                     <component
@@ -35,10 +37,12 @@
         :variant="buttonVariant"
         :size="variant === 'icon' ? 'icon' : size"
         :disabled="disabled || isLoading"
+        :aria-label="variant === 'icon' ? (label || tooltip || undefined) : undefined"
         :class="cn(buttonClass, props.class)"
         @click="handleClick"
         :href="url"
         :target="openUrlInNewTab ? '_blank' : undefined"
+        :rel="openUrlInNewTab ? 'noopener noreferrer' : undefined"
     >
         <Spinner v-if="isLoading" class="size-3" />
         <component
@@ -530,7 +534,7 @@ const handleClick = async (e: Event) => {
         e.preventDefault();
         // Open in new tab if specified (e.g., for file downloads)
         if (props.openUrlInNewTab) {
-            window.open(props.url, '_blank');
+            window.open(props.url, '_blank', 'noopener');
         } else {
             router.visit(props.url);
         }
