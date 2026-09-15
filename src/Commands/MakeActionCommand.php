@@ -94,7 +94,45 @@ class MakeActionCommand extends GeneratorCommand
         $stub = str_replace('{{ actionName }}', $name, $stub);
         $stub = str_replace('{{ actionLabel }}', $label, $stub);
 
-        return $stub;
+        return $this->replaceAuthorization($stub);
+    }
+
+    /**
+     * Replace the authorization placeholders in the stub (--auth).
+     */
+    protected function replaceAuthorization(string $stub): string
+    {
+        $stub = str_replace(["\r\n", "\r"], "\n", $stub);
+
+        if (! $this->option('auth')) {
+            return str_replace(["{{ authorization }}\n", "{{ authorizationMethod }}\n"], '', $stub);
+        }
+
+        $authorization = <<<'PHP'
+
+        // Only allow authorized users to see and run this action
+        $this->authorize(fn ($record = null) => $this->authorizeAction($record));
+
+PHP;
+
+        $authorizationMethod = <<<'PHP'
+
+    /**
+     * Determine whether the current user may perform the action.
+     */
+    protected function authorizeAction(mixed $record = null): bool
+    {
+        // e.g. return auth()->user()?->can('update', $record) ?? false;
+        return auth()->check();
+    }
+
+PHP;
+
+        return str_replace(
+            ["{{ authorization }}\n", "{{ authorizationMethod }}\n"],
+            [$authorization, $authorizationMethod],
+            $stub,
+        );
     }
 
     /**

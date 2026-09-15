@@ -19,15 +19,20 @@ class {{ class }} extends Action
             ->modalDescription('Are you sure you want to perform this action?')
             ->modalSubmitActionLabel('Confirm');
 
+        // Run handle() when the action is confirmed
+        $this->action(fn ($record = null, array $data = []) => $this->handle($record, $data));
+{{ authorization }}
         // $this->icon('heroicon-o-check');
         // $this->color('primary');
     }
-
+{{ authorizationMethod }}
     /**
      * Execute the action.
      */
-    public function handle(): void
+    public function handle(mixed $record = null, array $data = []): mixed
     {
         // Implement your action logic here
+
+        return null;
     }
 }
