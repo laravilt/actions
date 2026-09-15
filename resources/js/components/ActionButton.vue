@@ -175,6 +175,9 @@ const page = usePage();
 // Inject validateForm from parent Form (if available)
 const validateForm = inject<(() => boolean) | undefined>('validateForm', undefined);
 
+// Nearest form root (Form / root Schema): tags the action-updated-data event so only that form merges it
+const formScope = inject<string | null>('laravilt:form-scope', null);
+
 // Initialize notification
 const { notify } = useNotification();
 
@@ -745,9 +748,12 @@ const executeAction = async () => {
                         if (updatedData && Object.keys(updatedData).length > 0) {
                             // Emit event to update parent form data
                             // This will be handled by Form
-                            window.dispatchEvent(new CustomEvent('action-updated-data', {
+                            // `detail` stays the data; the scope rides on the event so only the owning form applies it
+                            const updatedDataEvent = new CustomEvent('action-updated-data', {
                                 detail: updatedData
-                            }));
+                            });
+                            (updatedDataEvent as any).laraviltFormScope = formScope;
+                            window.dispatchEvent(updatedDataEvent);
                         }
                     }
                 },

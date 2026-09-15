@@ -9,7 +9,7 @@ import ErrorProvider from '@laravilt/forms/components/ErrorProvider';
 import Form from '@laravilt/forms/components/Form';
 import InfoList from '@laravilt/infolists/components/InfoList';
 import { useNotification } from '@laravilt/notifications/composables/useNotification';
-import { useSchemaContext } from '@laravilt/support/composables/contexts';
+import { useFormScope, useSchemaContext } from '@laravilt/support/composables/contexts';
 import { useLatest } from '@laravilt/support/composables/hooks';
 import { useLocalization } from '@laravilt/support/composables/useLocalization';
 import { resolveIcon } from '@laravilt/support/lib/icons';
@@ -195,6 +195,9 @@ export default function ActionButton(props: ActionButtonProps) {
 
     // Inject validateForm from parent Form (if available)
     const { validateForm } = useSchemaContext();
+
+    // Nearest form root: tags the action-updated-data event so only that form merges it
+    const latestFormScope = useLatest(useFormScope());
 
     // Initialize notification
     const { notify } = useNotification();
@@ -543,11 +546,12 @@ export default function ActionButton(props: ActionButtonProps) {
                             if (updatedData && Object.keys(updatedData).length > 0) {
                                 // Emit event to update parent form data
                                 // This will be handled by Form / Schema
-                                window.dispatchEvent(
-                                    new CustomEvent('action-updated-data', {
-                                        detail: updatedData,
-                                    }),
-                                );
+                                // `detail` stays the data; the scope rides on the event so only the owning form applies it
+                                const updatedDataEvent = new CustomEvent('action-updated-data', {
+                                    detail: updatedData,
+                                });
+                                (updatedDataEvent as any).laraviltFormScope = latestFormScope.current;
+                                window.dispatchEvent(updatedDataEvent);
                             }
                         }
                     },
