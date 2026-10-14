@@ -2,6 +2,7 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Actions\Support\ResourceAuthorizer;
 use Laravilt\Notifications\Notification;
 
 class RestoreBulkAction extends BulkAction
@@ -48,6 +49,14 @@ class RestoreBulkAction extends BulkAction
             }
         }
 
+        // Fall back to the model's Laravel policy when one is registered
+        if ($this->model) {
+            $policyResult = ResourceAuthorizer::check('restore', $this->model);
+            if ($policyResult !== null) {
+                return $policyResult;
+            }
+        }
+
         // Default to checking restore permission directly
         $user = auth()->user();
         if (! $user || ! method_exists($user, 'hasPermissionTo')) {
@@ -74,24 +83,7 @@ class RestoreBulkAction extends BulkAction
      */
     protected function findResourceForModel(string $model): ?string
     {
-        // Get all registered resources from the current panel
-        try {
-            $panel = app('laravilt.panel.current');
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        if (! $panel) {
-            return null;
-        }
-
-        foreach ($panel->getResources() as $resource) {
-            if ($resource::getModel() === $model) {
-                return $resource;
-            }
-        }
-
-        return null;
+        return ResourceAuthorizer::findResourceForModel($model);
     }
 
     /**
@@ -124,6 +116,9 @@ class RestoreBulkAction extends BulkAction
 
                 return;
             }
+
+            // Enforce authorization on the server, not just by hiding the button
+            ResourceAuthorizer::authorizeBulk('restore', $modelClass, $ids, withTrashed: true);
 
             // Restore soft deleted records
             $restored = $modelClass::withTrashed()->whereIn('id', $ids)->restore();

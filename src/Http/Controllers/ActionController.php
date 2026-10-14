@@ -18,6 +18,7 @@ use Laravilt\Panel\Tenancy\MultiDatabaseManager;
 use Laravilt\Support\Utilities\Get;
 use Laravilt\Support\Utilities\Set;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class ActionController extends Controller
 {
@@ -104,6 +105,9 @@ class ActionController extends Controller
             ]);
         } catch (ValidationException $e) {
             // Let validation exceptions bubble up for proper Inertia handling
+            throw $e;
+        } catch (HttpExceptionInterface $e) {
+            // abort(403/404/...) inside an action must reach the client as-is
             throw $e;
         } catch (\Exception $e) {
             // For Inertia requests, redirect back with error
