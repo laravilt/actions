@@ -12,13 +12,14 @@ use Laravilt\Actions\DeleteBulkAction;
 use Laravilt\Actions\ForceDeleteBulkAction;
 use Laravilt\Actions\Http\Controllers\ActionController;
 use Laravilt\Actions\RestoreBulkAction;
+use Laravilt\Notifications\Notification;
 use Laravilt\Panel\Panel;
 use Laravilt\Panel\PanelRegistry;
 use Laravilt\Panel\Resources\Resource;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // The notifications package is not part of this package's dev dependencies
-if (! class_exists(\Laravilt\Notifications\Notification::class)) {
+if (! class_exists(Notification::class)) {
     eval('namespace Laravilt\Notifications; class Notification { public static function __callStatic($n, $a) { return new static; } public function __call($n, $a) { return $this; } }');
 }
 

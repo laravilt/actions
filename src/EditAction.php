@@ -2,6 +2,7 @@
 
 namespace Laravilt\Actions;
 
+use Illuminate\Database\Eloquent\Model;
 use Laravilt\Actions\Support\ResourceAuthorizer;
 
 class EditAction extends Action
@@ -57,7 +58,7 @@ class EditAction extends Action
     protected function checkPermissionDirectly(string $action, mixed $record): bool
     {
         // Resource (canX) or Laravel policy, resolved from the record's model
-        if ($record instanceof \Illuminate\Database\Eloquent\Model) {
+        if ($record instanceof Model) {
             $authorized = ResourceAuthorizer::check(str($action)->camel()->toString(), null, $record);
             if ($authorized !== null) {
                 return $authorized;
