@@ -2,6 +2,8 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Actions\Support\ResourceAuthorizer;
+
 use Laravilt\Notifications\Notification;
 
 class RestoreAction extends Action
@@ -65,6 +67,14 @@ class RestoreAction extends Action
      */
     protected function checkPermissionDirectly(string $action, mixed $record): bool
     {
+        // Resource (canX) or Laravel policy, resolved from the record's model
+        if ($record instanceof \Illuminate\Database\Eloquent\Model) {
+            $authorized = ResourceAuthorizer::check(str($action)->camel()->toString(), null, $record);
+            if ($authorized !== null) {
+                return $authorized;
+            }
+        }
+
         $user = auth()->user();
         if (! $user || ! method_exists($user, 'hasPermissionTo')) {
             return true;

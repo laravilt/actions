@@ -2,6 +2,7 @@
 
 namespace Laravilt\Actions;
 
+use Laravilt\Actions\Support\ResourceAuthorizer;
 use Laravilt\Notifications\Notification;
 
 class ForceDeleteBulkAction extends BulkAction
@@ -48,6 +49,14 @@ class ForceDeleteBulkAction extends BulkAction
             }
         }
 
+        // Fall back to the model's Laravel policy when one is registered
+        if ($this->model) {
+            $policyResult = ResourceAuthorizer::check('forceDelete', $this->model);
+            if ($policyResult !== null) {
+                return $policyResult;
+            }
+        }
+
         // Default to checking force_delete permission directly
         $user = auth()->user();
         if (! $user || ! method_exists($user, 'hasPermissionTo')) {
@@ -74,24 +83,7 @@ class ForceDeleteBulkAction extends BulkAction
      */
     protected function findResourceForModel(string $model): ?string
     {
-        // Get all registered resources from the current panel
-        try {
-            $panel = app('laravilt.panel.current');
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        if (! $panel) {
-            return null;
-        }
-
-        foreach ($panel->getResources() as $resource) {
-            if ($resource::getModel() === $model) {
-                return $resource;
-            }
-        }
-
-        return null;
+        return ResourceAuthorizer::findResourceForModel($model);
     }
 
     /**
@@ -124,6 +116,9 @@ class ForceDeleteBulkAction extends BulkAction
 
                 return;
             }
+
+            // Enforce authorization on the server, not just by hiding the button
+            ResourceAuthorizer::authorizeBulk('forceDelete', $modelClass, $ids, withTrashed: true);
 
             // Force delete records (permanently remove from database)
             $deleted = $modelClass::withTrashed()->whereIn('id', $ids)->forceDelete();
